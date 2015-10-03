@@ -2,6 +2,7 @@ package ass2.spec;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GL;
@@ -13,6 +14,8 @@ import javax.media.opengl.GLProfile;
 import javax.media.opengl.awt.GLJPanel;
 import javax.swing.JFrame;
 import com.jogamp.opengl.util.FPSAnimator;
+import com.jogamp.opengl.util.texture.TextureData;
+import com.jogamp.opengl.util.texture.TextureIO;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -23,11 +26,17 @@ import java.awt.event.KeyListener;
  * @author malcolmr
  */
 public class Game extends JFrame implements GLEventListener, KeyListener{
-
+	
     private Terrain myTerrain;
     private double[] myEyePosition;
     private double[] myEyePositionMovement;
     private float[] myLightPosition;
+    
+    private final int NUM_TEXTURES = 1;
+    int[] textures;
+	private String textureFileName1 = "src/ass2/spec/grass.png";
+	private String textureExt1 = "png";
+    
     public Game(Terrain terrain) {
         super("Assignment 2");
         myEyePositionMovement = new double[3];
@@ -36,6 +45,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         myLightPosition[1] = 1;
         myLightPosition[2] = 0;
         myTerrain = terrain;
+        textures = new int[NUM_TEXTURES];
     }
     
     /** 
@@ -80,7 +90,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
         
         GLU glu = new GLU();
-        glu.gluLookAt(5, 5, 5, 0, 0, 0, 0, 1, 0);
+        glu.gluLookAt(10, 5, 10, 0, 0, 0, 0, 1, 0);
         
         // Set light position
         float[] lightdir = myTerrain.getSunlight();
@@ -107,11 +117,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         }
         gl.glEnd();
         */
-        //gl.glColor3d(1, 1, 0);
         // set material properties
         float[] diffuseCoeff = {0.1f, 0.6f, 0.2f, 1.0f};
         float[] ambientCoeff = {0.1f, 0.6f, 0.2f, 1.0f};
-        float[] specCoeff = {0.1f, 0.6f, 0.2f, 1.0f};
+        float[] specCoeff = {0.3f, 0.6f, 0.2f, 1.0f};
         float[] emissionCoeff = {0.3f, 0.6f, 0.2f, 1.0f};
         float phong = 10f;
         gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
@@ -123,6 +132,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         int terrainWidth = (int)myTerrain.size().getWidth();
         int terrainHeight = (int)myTerrain.size().getHeight();
         // second, draw triangles
+        gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0]);
         gl.glBegin(GL2.GL_TRIANGLES);
         {
         		// for each point, draw a triangle with this point
@@ -136,18 +146,20 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         				double[] n1 = MathUtil.normal(thisPoint, downPoint, rightPoint);
         				double[] n2 = MathUtil.normal(downPoint, cornerPoint, rightPoint);
         				gl.glNormal3dv(n1, 0);
-        				gl.glVertex3dv(thisPoint, 0);
-        				gl.glVertex3dv(downPoint, 0);
-        				gl.glVertex3dv(rightPoint, 0);
+        				gl.glTexCoord2d(0, 0);gl.glVertex3dv(thisPoint, 0);
+        				gl.glTexCoord2d(0, 0.1);gl.glVertex3dv(downPoint, 0);
+        				gl.glTexCoord2d(0.1, 0);gl.glVertex3dv(rightPoint, 0);
         				
         				gl.glNormal3dv(n2, 0);
-        				gl.glVertex3dv(downPoint, 0);
-        				gl.glVertex3dv(cornerPoint, 0);
-        				gl.glVertex3dv(rightPoint, 0);
+        				gl.glTexCoord2d(0, 0);gl.glVertex3dv(downPoint, 0);
+        				gl.glTexCoord2d(0, 0.1);gl.glVertex3dv(cornerPoint, 0);
+        				gl.glTexCoord2d(0.1, 0);gl.glVertex3dv(rightPoint, 0);
         			}
         		}
         }
         gl.glEnd();
+        
+        
         gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
     }
 
@@ -165,7 +177,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         gl.glEnable(GL2.GL_DEPTH_TEST);
         gl.glEnable(GL2.GL_LIGHTING);
         gl.glEnable(GL2.GL_LIGHT0);
-        
+        gl.glEnable(GL2.GL_TEXTURE_2D);
+        System.out.println("calling init!");
         // set light properties
         float[] amb = {0.1f, 0.2f, 0.3f, 1.0f};
         float[] dif = {1.0f, 0.0f, 0.1f, 1.0f};
@@ -174,18 +187,34 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
+        
+        // initialize textures
+        GLProfile glp = GLProfile.getDefault();
+        File textureData = new File(textureFileName1);
+        TextureData data = null;
+        try {
+			data = TextureIO.newTextureData(glp, textureData, false, "png");
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        gl.glGenTextures(NUM_TEXTURES, textures, 0);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, textures[0]);
+        gl.glTexImage2D(GL2.GL_TEXTURE_2D, 0, data.getInternalFormat(),
+				data.getWidth(), data.getHeight(), 0, data.getPixelFormat(),
+				data.getPixelType(), data.getBuffer());
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR); 
     }
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width,
             int height) {
-        // TODO Auto-generated method stub
         GL2 gl = drawable.getGL().getGL2();
         gl.glMatrixMode(GL2.GL_PROJECTION);
         gl.glLoadIdentity();
-        gl.glOrtho(-10, 10, -10, 10, -20, 20);
-        //GLU glu = new GLU();
-        //glu.gluPerspective(120,1,1,20);
+        //gl.glOrtho(-10, 10, -10, 10, -20, 20);
+        gl.glFrustum(-1, 1, -1, 1, 2, 10);
     }
 
 	@Override

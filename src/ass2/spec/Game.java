@@ -36,8 +36,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
     private final int NUM_TEXTURES = 2;
     private MyTexture[] textures;
     //int[] textures;
-	private String grassTextureFileName = "src/src/ass2/spec/grass.png";
-	private String trunkTextureFileName = "src/src/ass2/spec/trunk.png";
+	private String grassTextureFileName = "src/ass2/spec/grass.png";
+	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
     
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;

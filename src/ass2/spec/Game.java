@@ -3,6 +3,7 @@ package ass2.spec;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GL;
@@ -42,6 +43,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
+	
+	private final int ROAD_POINT_NUM = 100;
 	
     public Game(Terrain terrain) {
         super("Assignment 2");
@@ -93,7 +96,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         gl.glLoadIdentity();
         
         GLU glu = new GLU();
-        glu.gluLookAt(5, 6, 10, 0, 0, 0, 0, 1, 0);
+        glu.gluLookAt(10, 6, 10, 0, 0, 0, 0, 1, 0);
         
         // Set light position
         float[] lightdir = myTerrain.getSunlight();
@@ -101,6 +104,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         //System.out.println("light position: " + myLightPosition[0] + "  " + myLightPosition[1] + "  " + myLightPosition[2]);
         //drawCoordinateFrame(gl);
         // set material properties to grass
+        
         float[] diffuseCoeff = {0.1f, 0.6f, 0.2f, 1.0f};
         float[] ambientCoeff = {0.1f, 0.6f, 0.2f, 1.0f};
         float[] specCoeff = {0.3f, 0.6f, 0.2f, 1.0f};
@@ -125,6 +129,36 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff2, 0);
         gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong2);
         drawTrees(gl);
+        /*
+        // change material properties to road
+        float[] diffuseCoeff3 = {1f, 1f, 1f, 1.0f};
+        float[] ambientCoeff3 = {1f, 1f, 1f, 1.0f};
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff3, 0);
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff3, 0);
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, ambientCoeff3, 0);
+        gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, ambientCoeff3, 0);*/
+        List<Road> roads = myTerrain.roads();
+        for(int i = 0; i < roads.size(); i++) {
+        		gl.glPushMatrix();
+        		int numberOfLines = 100;
+        		for(int j = 1; j < numberOfLines; j++) {
+            		drawRoad(gl, roads.get(i), roads.get(i).width()/numberOfLines * j);
+        		}
+        		gl.glPopMatrix();
+        }
+        
+    }
+    
+    private void drawRoad(GL2 gl, Road road, double shift) {
+		gl.glLineWidth(10);
+		
+    		gl.glBegin(GL2.GL_LINE_STRIP);
+    		for(int i = 0; i < ROAD_POINT_NUM; i++) {
+    			double[] point = road.point(1.0/ROAD_POINT_NUM * i);
+    			double y = myTerrain.altitude(point[0], point[1]);
+    			gl.glVertex3d(point[0]+shift, y, point[1]+shift);
+    		}
+    		gl.glEnd();
     }
     
     private void drawTrees(GL2 gl) {
@@ -137,7 +171,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
     			//gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
     			// draw around
     			gl.glBegin(GL2.GL_QUAD_STRIP);
-    			for(int j = 0; j < TREE_TRUNK_NUM; j++) {
+    			for(int j = 0; j < TREE_TRUNK_NUM+1; j++) {
     				double x = Math.cos(2*j*TREE_RADIUS*Math.PI/TREE_TRUNK_NUM);
     				double z = Math.sin(2*j*TREE_RADIUS*Math.PI/TREE_TRUNK_NUM);
     				gl.glNormal3d(x, 0, z);
@@ -146,6 +180,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
     				gl.glTexCoord2d(1.0/TREE_TRUNK_NUM * j, 1);
     				gl.glVertex3d(x, TREE_HEIGHT, z);
     			}
+    			
     			gl.glEnd();
     			// draw top ball
     			GLUT glut = new GLUT();
@@ -231,6 +266,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         float[] amb = {0.1f, 0.2f, 0.3f, 1.0f};
         float[] dif = {1.0f, 0.0f, 0.1f, 1.0f};
         float[] spe = {1.0f, 1.0f, 1.0f, 1.0f};
+        //float[] amb = {1f, 1f, 1f, 1.0f};
+        //float[] dif = {1.0f, 1f, 1f, 1.0f};
+        //float[] spe = {1.0f, 1.0f, 1.0f, 1.0f};
         gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
@@ -239,7 +277,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         // initialize textures
         textures = new MyTexture[NUM_TEXTURES];
         textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
-        textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
+        textures[1] = new MyTexture(gl, trunkTextureFileName, "png", true);
         /*
         GLProfile glp = GLProfile.getDefault();
         File textureData = new File(grassTextureFileName);

@@ -132,8 +132,26 @@ public class Terrain {
     public double altitude(double x, double z) {
         double altitude = 0;
 
+        double x1 = Math.floor(x);
+        double x2 = x1 + 1;
+        double z1 = Math.floor(z);
+        double z2 = z1 + 1;
         
+        double y11 = this.getGridAltitude((int) x1, (int) z1);
+        double y12 = this.getGridAltitude((int) x1, (int) z2);
+        double y22 = this.getGridAltitude((int) x2, (int) z2);
+        double y21 = this.getGridAltitude((int) x2, (int) z1);
         
+        //   altitudeLeft        altitudeRight
+        //    *(x1, z2)-------*(x2, z2)
+        //    |				   |
+        //    |      *(x, z)    |
+        //    |				   |
+        //	  *(x1, z1)-------*(x2, z1)
+        
+        double altitudeLeft = y12*(z-z1) + y11*(z2-z);
+        double altitudeRight = y22*(z-z1) + y21*(z2-z);
+        altitude = altitudeRight*(x-x1) + altitudeLeft*(x2-x);
         return altitude;
     }
 

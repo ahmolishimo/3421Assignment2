@@ -99,7 +99,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener{
         glu.gluLookAt(10, 6, 10, 0, 0, 0, 0, 1, 0);
         
         // Set light position
-        float[] lightdir = myTerrain.getSunlight();
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
         //System.out.println("light position: " + myLightPosition[0] + "  " + myLightPosition[1] + "  " + myLightPosition[2]);
         //drawCoordinateFrame(gl);

@@ -121,7 +121,7 @@ public class Road {
     /**
      * Calculate the Bezier coefficients
      * 
-     * @param i
+     * @param i a degree 3 Bezier curve, same as k in lecture notes
      * @param t
      * @return
      */
@@ -145,6 +145,142 @@ public class Road {
         // this should never happen
         throw new IllegalArgumentException("" + i);
     }
-
-
+    
+    /**
+     * Calculate the bezier coefficience of a degree less than the original
+     * bezier curve. Used in calculaiton of tangent line to the road.
+     * @param i should be 0, 1 or 2 
+     * @param t
+     * @return
+     */
+    private double bl(int i, double t) {
+    		switch(i) {
+    		case 0:
+    			return (1-t)*(1-t);
+    		case 1:
+    			return 2*t*(1-t);
+    		case 2:
+    			return t*t;
+    		}
+    		throw new IllegalArgumentException("" + i);
+    }
+    
+    /** normalize the given vector
+     * @param vector
+     * @return
+     */
+    private double[] normalize(double[] vector) {
+    		double l = length(vector);
+    		for(int i = 0; i < vector.length; i++) {
+    			vector[i] = vector[i]/l;
+    		}
+    		return vector;
+    }
+    
+    /** calculate the length of the given vector
+     * @param vector
+     * @return the length of the vector
+     */
+    private double length(double[] vector) {
+    		double l = 0;
+    		for(int i = 0; i < vector.length; i++) {
+    			l += vector[i]*vector[i];
+    		}
+    		l = Math.sqrt(l);
+    		return l;
+    }
+    
+    /** calculate the tangent line at the given point t
+     * @param t given in range(0, size)
+     * @return the tangent line at this point, already normalized
+     */
+    private double[] tangent(double t) {
+    		double[] tangent = new double[2];
+    		// get old control point(4 control point in the segment of the curve)
+    		int i = (int)Math.floor(t);
+        t = t - i;
+        i *= 6;
+        double x0 = myPoints.get(i++);
+        double y0 = myPoints.get(i++);
+        double x1 = myPoints.get(i++);
+        double y1 = myPoints.get(i++);
+        double x2 = myPoints.get(i++);
+        double y2 = myPoints.get(i++);
+        double x3 = myPoints.get(i++);
+        double y3 = myPoints.get(i++);
+        // get new control point of degree - 1 bezier curve
+        double xp0 = x1 - x0;
+        double yp0 = y1 - y0;
+        double xp1 = x2 - x1;
+        double yp1 = y2 - y1;
+        double xp2 = x3 - x2;
+        double yp2 = y3 - y2;
+        // calculate the tangent line to the given point
+        tangent[0] = 3*(bl(0, t)*xp0 + bl(1, t)*xp1 + bl(2, t)*xp2);
+        tangent[1] = 3*(bl(0, t)*yp0 + bl(1, t)*yp1 + bl(2, t)*yp2);
+        normalize(tangent);
+    		return tangent;
+    }
+    
+    /** calculate the perpendicular vector to the given line
+     * the direction of the perpendicular vector is the same as to rotate
+     * the line clockwise by 90 degrees
+     * @param line should be 2 dimension
+     * @return
+     */
+    private double[] rightPerpendicular(double[] line) {
+    		double[] p = new double[2];
+    		p[0] = line[1];
+    		p[1] = 0-line[0];
+    		return p;
+    }
+    
+    /** calculate the perpendicular vector to the given line
+     * the direction of the perpendicular vector is the same as to rotate
+     * the line counter-clockwise by 90 degrees
+     * @param line
+     * @return
+     */
+    private double[] leftPerpendicular(double[] line) {
+    		double[] p = new double[2];
+    		p[0] = 0 - line[1];
+    		p[1] = line[0];
+    		return p;
+    }
+    
+    /** move a point along a direction to the specified distance
+     * Note: the direction should be normalized
+     * @param direction the direction along which to move the point
+     * @param from the origin of the point
+     * @param distance the amount of movement
+     * @return the destination point after the movement
+     */
+    private double[] moveAlong(double[] direction, double[] from, double distance) {
+    		double[] destination = new double[2];
+    		destination[0] = from[0] + distance * direction[0];
+    		destination[1] = from[1] + distance * direction[1];
+    		return destination;
+    }
+    
+    /** calculate the edge point of the road
+     * @param t
+     * @param right if right = true, this function returns the edge point to the right of the road
+     * @return a point(2D vector)
+     */
+    public double[] edgePoint(double t, boolean right) {
+    		double[] edge = new double[2];
+    		edge[0] = 0;
+    		edge[1] = 0;
+    		double[] p = point(t);
+    		double[] tangentVector = tangent(t);
+    		double[] perp;
+    		if(right) {
+    			perp = rightPerpendicular(tangentVector);
+    		} else {
+    			perp = leftPerpendicular(tangentVector);
+    		}
+    		// TODO: adjust the divider so that the road looks nice and make the width right
+    		edge = moveAlong(perp, p, myWidth/5.0);
+    		return edge;
+    }
 }

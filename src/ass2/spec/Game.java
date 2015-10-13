@@ -8,6 +8,7 @@ import java.util.List;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GL;
 import javax.media.opengl.glu.GLU;
+import javax.media.opengl.glu.GLUquadric;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLEventListener;
@@ -44,7 +45,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
 	
-	private final int ROAD_POINT_NUM = 100;
+	private final int ROAD_SEG_NUM = 100;
 	
 	// X positon, Y axis rotation and Z position
 	private float xpos;
@@ -162,25 +163,33 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff2, 0);
 		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong2);
 		drawTrees(gl);
+		
 		List<Road> roads = myTerrain.roads();
         for(int i = 0; i < roads.size(); i++) {
         		gl.glPushMatrix();
-        		int numberOfLines = 100;
-        		for(int j = 1; j < numberOfLines; j++) {
-            		drawRoad(gl, roads.get(i), roads.get(i).width()/numberOfLines * j);
-        		}
+            	drawRoad(gl, roads.get(i));
         		gl.glPopMatrix();
         }
 	}
 
-	private void drawRoad(GL2 gl, Road road, double shift) {
-		gl.glLineWidth(10);
-
-		gl.glBegin(GL2.GL_LINE_STRIP);
-		for (int i = 0; i < ROAD_POINT_NUM; i++) {
-			double[] point = road.point(1.0 / ROAD_POINT_NUM * i);
-			double y = myTerrain.altitude(point[0], point[1]);
-			gl.glVertex3d(point[0] + shift, y, point[1] + shift);
+	private void drawRoad(GL2 gl, Road road) {
+		gl.glBegin(GL2.GL_QUADS);
+		// TODO: try to set the height of the road according to the terrain
+		// in this version, the road has the same height/altitude
+		double[] p = road.point(0);
+		// shift the height a little bit so that it will be drawn above the terrain
+		double height = myTerrain.altitude(p[0], p[1]) + 0.1;
+		for (int i = 0; i < ROAD_SEG_NUM - 1; i++) {
+			double t = road.size()/(double)ROAD_SEG_NUM * i;
+			double[] p1 = road.edgePoint(t, false);
+			double[] p2 = road.edgePoint(t, true);
+			double[] p3 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, true);
+			double[] p4 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, false);
+			gl.glVertex3d(p1[0], height, p1[1]);
+			gl.glVertex3d(p2[0], height, p2[1]);
+			gl.glVertex3d(p3[0], height, p3[1]);
+			gl.glVertex3d(p4[0], height, p4[1]);
+			
 		}
 		gl.glEnd();
 	}
@@ -207,9 +216,13 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glEnd();
 
 			// draw top ball
-			GLUT glut = new GLUT();
+			GLU glu = new GLU();
 			gl.glTranslated(0, TREE_HEIGHT, 0);
-			glut.glutSolidSphere(3, 24, 24);
+			//glut.glutSolidSphere(3, 24, 24);
+			GLUquadric quadric = glu.gluNewQuadric();
+			glu.gluQuadricTexture(quadric, true);
+			glu.gluQuadricNormals(quadric, GLU.GLU_SMOOTH);
+			glu.gluSphere(quadric, 3, 64, 64);
 			gl.glPopMatrix();
 		}
 	}
@@ -224,6 +237,13 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		{
 			// for each point, draw a triangle with this point
 			// the point to the right and the point down it
+			//
+			// this point *-------* right point
+			//            |      /|
+			//            |    /  |
+			//            |  /    |
+			// down point *-------* corner point
+			//
 			for (int i = 0; i < terrainWidth - 1; i++) {
 				for (int j = 0; j < terrainHeight - 1; j++) {
 					double[] thisPoint = { i, myTerrain.getGridAltitude(i, j), j };
@@ -233,19 +253,18 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 					double[] n1 = MathUtil.normal(thisPoint, downPoint, rightPoint);
 					double[] n2 = MathUtil.normal(downPoint, cornerPoint, rightPoint);
 					gl.glNormal3dv(n1, 0);
-					gl.glTexCoord2d(0, 0);
+					gl.glTexCoord2d(1.0/terrainWidth * i, 1.0/terrainHeight * j);
 					gl.glVertex3dv(thisPoint, 0);
-					gl.glTexCoord2d(0, 0.1);
+					gl.glTexCoord2d(1.0/terrainWidth * i, 1.0/terrainHeight * (j+1));
 					gl.glVertex3dv(downPoint, 0);
-					gl.glTexCoord2d(0.1, 0);
+					gl.glTexCoord2d(1.0/terrainWidth * (i+1), 1.0/terrainHeight * j);
 					gl.glVertex3dv(rightPoint, 0);
-
 					gl.glNormal3dv(n2, 0);
-					gl.glTexCoord2d(0, 0);
+					gl.glTexCoord2d(1.0/terrainWidth * i, 1.0/terrainHeight * (j+1));
 					gl.glVertex3dv(downPoint, 0);
-					gl.glTexCoord2d(0, 0.1);
+					gl.glTexCoord2d(1.0/terrainWidth * (i+1), 1.0/terrainHeight * (j+1));
 					gl.glVertex3dv(cornerPoint, 0);
-					gl.glTexCoord2d(0.1, 0);
+					gl.glTexCoord2d(1.0/terrainWidth * (i+1), 1.0/terrainHeight * j);
 					gl.glVertex3dv(rightPoint, 0);
 				}
 			}
@@ -278,14 +297,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
-		// TODO Auto-generated method stub
-		// TODO
-
 	}
 
 	@Override
 	public void init(GLAutoDrawable drawable) {
-		// TODO Auto-generated method stub
 		GL2 gl = drawable.getGL().getGL2();
 		gl.glClearColor(1, 1, 1, 1);
 		gl.glEnable(GL2.GL_DEPTH_TEST);
@@ -307,31 +322,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures = new MyTexture[NUM_TEXTURES];
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
-		/*
-		 * GLProfile glp = GLProfile.getDefault(); File textureData = new
-		 * File(grassTextureFileName); TextureData data = null; try { data =
-		 * TextureIO.newTextureData(glp, textureData, false, "png"); } catch
-		 * (IOException e) { e.printStackTrace(); }
-		 * gl.glGenTextures(NUM_TEXTURES, textures, 0);
-		 * gl.glBindTexture(GL.GL_TEXTURE_2D, textures[0]);
-		 * gl.glTexImage2D(GL2.GL_TEXTURE_2D, 0, data.getInternalFormat(),
-		 * data.getWidth(), data.getHeight(), 0, data.getPixelFormat(),
-		 * data.getPixelType(), data.getBuffer());
-		 * gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER,
-		 * GL.GL_LINEAR); gl.glTexParameteri(GL.GL_TEXTURE_2D,
-		 * GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR); textureData = new
-		 * File(trunkTextureFileName); try { data =
-		 * TextureIO.newTextureData(glp, textureData, false, "png"); } catch
-		 * (IOException e) { e.printStackTrace(); }
-		 * gl.glBindTexture(GL.GL_TEXTURE_2D, textures[1]);
-		 * gl.glTexImage2D(GL2.GL_TEXTURE_2D, 0, data.getInternalFormat(),
-		 * data.getWidth(), data.getHeight(), 0, data.getPixelFormat(),
-		 * data.getPixelType(), data.getBuffer());
-		 * gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER,
-		 * GL.GL_LINEAR); gl.glTexParameteri(GL.GL_TEXTURE_2D,
-		 * GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
-		 */
-	}
+		}
 
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {

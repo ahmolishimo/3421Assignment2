@@ -3,6 +3,8 @@ package ass2.spec;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 import java.util.List;
 
 import javax.media.opengl.GLAutoDrawable;
@@ -15,6 +17,8 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.GLProfile;
 import javax.media.opengl.awt.GLJPanel;
 import javax.swing.JFrame;
+
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.TextureData;
@@ -35,12 +39,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private double[] myEyePositionMovement;
 	private float[] myLightPosition;
 
-	private final int NUM_TEXTURES = 2;
+	private final int NUM_TEXTURES = 3;
 	private MyTexture[] textures;
-	// int[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
-
+	private String bushTextureFileName = "src/ass2/spec/iceTexture.jpg";
+	
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
@@ -62,7 +66,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	// array to keep track of keys that were pressed
 	private boolean[] keys = new boolean[200];
-
+	
+	private int bufferIDs[] = new int[3];
+	private int degree = 0;
+	
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myEyePositionMovement = new double[3];
@@ -170,6 +177,15 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
             	drawRoad(gl, roads.get(i));
         		gl.glPopMatrix();
         }
+        
+        // using vbos to draw objects
+        gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 8);
+        gl.glRotated(degree, 0, 1, 0);
+        degree++;
+        gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
+        gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
+    		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
+    		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
 	}
 
 	private void drawRoad(GL2 gl, Road road) {
@@ -201,7 +217,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glTranslated(pos[0], pos[1], pos[2]);
 			gl.glScaled(0.5, 0.5, 0.5);
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[1].getTextureId());
-			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 			// draw around
 			gl.glBegin(GL2.GL_QUAD_STRIP);
 			for (int j = 0; j < TREE_TRUNK_NUM+1; j++) {
@@ -216,9 +231,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glEnd();
 
 			// draw top ball
+			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0].getTextureId());
 			GLU glu = new GLU();
 			gl.glTranslated(0, TREE_HEIGHT, 0);
-			//glut.glutSolidSphere(3, 24, 24);
 			GLUquadric quadric = glu.gluNewQuadric();
 			glu.gluQuadricTexture(quadric, true);
 			glu.gluQuadricNormals(quadric, GLU.GLU_SMOOTH);
@@ -307,7 +322,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnable(GL2.GL_LIGHTING);
 		gl.glEnable(GL2.GL_LIGHT0);
 		gl.glEnable(GL2.GL_TEXTURE_2D);
-
+		gl.glEnable(GL2.GL_NORMALIZE);
+		
 		// set light properties
 		float[] amb = { 0.1f, 0.2f, 0.3f, 1.0f };
 		float[] dif = { 1.0f, 0.0f, 0.1f, 1.0f };
@@ -322,7 +338,17 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures = new MyTexture[NUM_TEXTURES];
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
-		}
+		//textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", false);
+		
+		// load vbos
+		gl.glGenBuffers(3, bufferIDs, 0);
+		FloatBuffer posData = Buffers.newDirectFloatBuffer(MySpecialObject.getPoints());
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, 
+				MySpecialObject.lengthInBytes(), 
+				posData, 
+				GL2.GL_STATIC_DRAW);
+	}
 
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {

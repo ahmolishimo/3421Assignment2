@@ -28,7 +28,9 @@ public class MyTexture {
         TextureData data = null;
         try {
              File file = new File(fileName);
+             //System.out.println("file read successfuly " + fileName);
              BufferedImage img = ImageIO.read(file); // read file into BufferedImage
+             
              ImageUtil.flipImageVertically(img);
             //This library will result in different formats being upside down.
             //data = TextureIO.newTextureData(GLProfile.getDefault(), file, false,extension);

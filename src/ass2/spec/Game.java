@@ -118,13 +118,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
-
+		
 		// set camera
-
 		GLU glu = new GLU();
 		setCamera(gl, glu, 10);
-		// glu.gluLookAt(5, 6, 20, 0, 0, 0, 0, 1, 0);
-
+		
 		// draw avatar
 		gl.glColor3f(0, 1, 0);
 		GLUT glut = new GLUT();
@@ -143,72 +141,100 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// perform translations and rotations
 		gl.glRotatef(lookupdown, 1.0f, 0.0f, 0.0f);
 		gl.glRotatef(sceneRot, 0.0f, 1.0f, 0.0f);
-
 		gl.glTranslatef(xTrans, yTrans, zTrans);
 
 		//gl.glRotatef(360.0f - yrot, 0.0f, 1.0f, 0.0f);
 		//gl.glTranslatef(-camerax, 0.0f, -cameraz);
 
 		// set light position
-		// float[] lightdir = myTerrain.getSunlight();
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
-
-		// System.out.println("light position: " + myLightPosition[0] + " " +
-		// myLightPosition[1] + " " + myLightPosition[2]);
-		drawCoordinateFrame(gl);
-
-		// set material properties to grass
-		float[] diffuseCoeff = { 0.1f, 0.6f, 0.2f, 1.0f };
-		float[] ambientCoeff = { 0.1f, 0.6f, 0.2f, 1.0f };
-		float[] specCoeff = { 0.3f, 0.6f, 0.2f, 1.0f };
-		float[] emissionCoeff = { 0.3f, 0.6f, 0.2f, 1.0f };
-		float phong = 10f;
-
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, specCoeff, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
-		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
+		//drawCoordinateFrame(gl);
+		setMaterialForGrass(gl);
 		drawTerrain(gl);
-
-		// change material properties to trunk
-		float[] diffuseCoeff2 = { 0.3565f, 0.2174f, 0.2f, 1.0f };
-		float[] ambientCoeff2 = { 0.3565f, 0.2174f, 0.2f, 1.0f };
-		float[] specCoeff2 = { 0.3565f, 0.2174f, 0.2f, 1.0f };
-		float[] emissionCoeff2 = { 0.3565f, 0.2174f, 0.2f, 1.0f };
-		float phong2 = 1f;
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, specCoeff2, 0);
-		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff2, 0);
-		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong2);
 		drawTrees(gl);
-
 		List<Road> roads = myTerrain.roads();
 		for (int i = 0; i < roads.size(); i++) {
 			gl.glPushMatrix();
 			drawRoad(gl, roads.get(i));
 			gl.glPopMatrix();
 		}
-		
 		// using vbos to draw objects
-        gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 8);
+		drawSpecialObject(gl);
+	}
+
+	private void setMaterialForGrass(GL2 gl) {
+		// set material properties to grass
+		float[] ambientCoeff = { 0.5f, 0.5f, 0.5f, 1.0f };
+		float[] diffuseCoeff = { 0.1f, 0.7f, 0.3f, 1.0f };
+		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float[] emissionCoeff = {0.0f, 0.0f, 0.0f, 1.0f};
+		float phong = 10f;
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, specCoeff, 0);
+		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
+	}
+	
+	private void setMaterialForTrunk(GL2 gl) {
+		// change material properties to trunk
+		float[] ambientCoeff2 = { 0.7f, 0.5f, 0.5f, 1.0f };
+		float[] diffuseCoeff2 = { 1f, 0.1f, 0.1f, 1.0f };
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
+	}
+	
+	private void setMaterialForRoad(GL2 gl) {
+		float[] ambientCoeff2 = { 0.3f, 0f, 0f, 1.0f };
+		float[] diffuseCoeff2 = { 1f, 0.1f, 0.1f, 1.0f };
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
+	}
+	
+	private void setMaterialForTreeBall(GL2 gl) {
+		float[] ambientCoeff2 = { 0.2f, 0.6f, 0.3f, 1.0f };
+		float[] diffuseCoeff2 = { 0.2f, 0.6f, 0.3f, 1.0f };
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
+	}
+	
+	private void setMaterialForSpecialObject(GL2 gl) {
+		float[] ambientCoeff = { 0.3f, 0.3f, 0.3f, 1.0f };
+		float[] diffuseCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float[] emissionCoeff = {0.0f, 1f, 1f, 1.0f};
+		float phong = 10f;
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, specCoeff, 0);
+		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
+	}
+	
+	private void drawSpecialObject(GL2 gl) {
+		setMaterialForSpecialObject(gl);
+        gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 4);
         gl.glRotated(degree, 0, 1, 0);
         degree++;
+        gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+        gl.glLineWidth(10);
         gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
         gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
     		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
     		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
+    		gl.glLineWidth(1);
+    		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 	}
-
+	
 	private void drawRoad(GL2 gl, Road road) {
+		setMaterialForRoad(gl);
 		gl.glBegin(GL2.GL_QUADS);
 		// TODO: try to set the height of the road according to the terrain
 		// in this version, the road has the same height/altitude
 		double[] p = road.point(0);
 		// shift the height a little bit so that it will be drawn above the
 		// terrain
-		double height = myTerrain.altitude(p[0], p[1]) + 0.1;
+		double height = myTerrain.altitude(p[0], p[1]) + 0.01;
 		for (int i = 0; i < ROAD_SEG_NUM - 1; i++) {
 			double t = road.size() / (double) ROAD_SEG_NUM * i;
 			double[] p1 = road.edgePoint(t, false);
@@ -231,11 +257,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glPushMatrix();
 			gl.glTranslated(pos[0], pos[1], pos[2]);
 			gl.glScaled(0.5, 0.5, 0.5);
+			setMaterialForTrunk(gl);
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[1].getTextureId());
 			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 			// draw around
 			gl.glBegin(GL2.GL_QUAD_STRIP);
-
 			for (int j = 0; j < TREE_TRUNK_NUM + 1; j++) {
 				double x = Math.cos(2 * j * TREE_RADIUS * Math.PI / TREE_TRUNK_NUM);
 				double z = Math.sin(2 * j * TREE_RADIUS * Math.PI / TREE_TRUNK_NUM);
@@ -248,6 +274,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glEnd();
 
 			// draw top ball
+			//gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0].getTextureId());
+			setMaterialForTreeBall(gl);
 			GLU glu = new GLU();
 			gl.glTranslated(0, TREE_HEIGHT, 0);
 			// glut.glutSolidSphere(3, 24, 24);
@@ -265,6 +294,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		int terrainHeight = (int) myTerrain.size().getHeight();
 		// second, draw triangles
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0].getTextureId());
+		//gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 		gl.glBegin(GL2.GL_TRIANGLES);
 		{
 			// for each point, draw a triangle with this point
@@ -361,9 +391,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnable(GL2.GL_TEXTURE_2D);
 
 		// set light properties
-		float[] amb = { 0.1f, 0.2f, 0.3f, 1.0f };
-		float[] dif = { 1.0f, 0.0f, 0.1f, 1.0f };
-		float[] spe = { 1.0f, 1.0f, 1.0f, 1.0f };
+		float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
+		float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
+		float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
 
 		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);

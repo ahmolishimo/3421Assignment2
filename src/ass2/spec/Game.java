@@ -3,6 +3,7 @@ package ass2.spec;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.FloatBuffer;
 import java.util.List;
 
 import javax.media.opengl.GLAutoDrawable;
@@ -15,6 +16,8 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.GLProfile;
 import javax.media.opengl.awt.GLJPanel;
 import javax.swing.JFrame;
+
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.TextureData;
@@ -31,13 +34,10 @@ import java.awt.event.KeyListener;
 public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private Terrain myTerrain;
-	private double[] myEyePosition;
-	private double[] myEyePositionMovement;
 	private float[] myLightPosition;
 
 	private final int NUM_TEXTURES = 2;
 	private MyTexture[] textures;
-	// int[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
 
@@ -47,6 +47,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private final int ROAD_SEG_NUM = 100;
 
+	// used for special object rendering with vbos
+	private int bufferIDs[] = new int[1];
+	private int degree = 0;
+	
 	// X positon, Y axis rotation and Z position
 	private float xpos;
 	private float yrot;
@@ -68,7 +72,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	public Game(Terrain terrain) {
 		super("Assignment 2");
-		myEyePositionMovement = new double[3];
 		myLightPosition = new float[3];
 		myLightPosition[0] = -1;
 		myLightPosition[1] = 1;
@@ -187,6 +190,15 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			drawRoad(gl, roads.get(i));
 			gl.glPopMatrix();
 		}
+		
+		// using vbos to draw objects
+        gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 8);
+        gl.glRotated(degree, 0, 1, 0);
+        degree++;
+        gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
+        gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
+    		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
+    		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
 	}
 
 	private void drawRoad(GL2 gl, Road road) {
@@ -362,6 +374,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures = new MyTexture[NUM_TEXTURES];
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
+		
+		// load vbos
+		gl.glGenBuffers(1, bufferIDs, 0);
+		FloatBuffer posData = Buffers.newDirectFloatBuffer(MySpecialObject.getPoints());
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, MySpecialObject.lengthInBytes(), posData, GL2.GL_STATIC_DRAW);
 	}
 
 	@Override

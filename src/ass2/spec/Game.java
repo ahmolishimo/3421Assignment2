@@ -3,8 +3,6 @@ package ass2.spec;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 import java.util.List;
 
 import javax.media.opengl.GLAutoDrawable;
@@ -17,8 +15,6 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.GLProfile;
 import javax.media.opengl.awt.GLJPanel;
 import javax.swing.JFrame;
-
-import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.TextureData;
@@ -39,18 +35,18 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private double[] myEyePositionMovement;
 	private float[] myLightPosition;
 
-	private final int NUM_TEXTURES = 3;
+	private final int NUM_TEXTURES = 2;
 	private MyTexture[] textures;
+	// int[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
-	private String bushTextureFileName = "src/ass2/spec/iceTexture.jpg";
-	
+
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
-	
+
 	private final int ROAD_SEG_NUM = 100;
-	
+
 	// X positon, Y axis rotation and Z position
 	private float xpos;
 	private float yrot;
@@ -64,12 +60,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private float walkbias = 0.0f;
 	private float walkbiasangle = 0.0f;
 
+	// 3rd person view
+	private float camerax;
+	private float cameraz;
 	// array to keep track of keys that were pressed
 	private boolean[] keys = new boolean[200];
-	
-	private int bufferIDs[] = new int[3];
-	private int degree = 0;
-	
+
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myEyePositionMovement = new double[3];
@@ -121,8 +117,15 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glLoadIdentity();
 
 		// set camera
+
 		GLU glu = new GLU();
-		glu.gluLookAt(5, 6, 10, 0, 0, 0, 0, 1, 0);
+		setCamera(gl, glu, 10);
+		// glu.gluLookAt(5, 6, 20, 0, 0, 0, 0, 1, 0);
+
+		// draw avatar
+		gl.glColor3f(0, 1, 0);
+		GLUT glut = new GLUT();
+		glut.glutSolidCube(1);
 
 		// translation and rotation
 		float xTrans = -xpos;
@@ -130,11 +133,18 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		float zTrans = -zpos;
 		float sceneRot = 360.0f - yrot;
 
+		// 3rd person camera
+		camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
+		cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
+
 		// perform translations and rotations
 		gl.glRotatef(lookupdown, 1.0f, 0.0f, 0.0f);
 		gl.glRotatef(sceneRot, 0.0f, 1.0f, 0.0f);
 
 		gl.glTranslatef(xTrans, yTrans, zTrans);
+
+		//gl.glRotatef(360.0f - yrot, 0.0f, 1.0f, 0.0f);
+		//gl.glTranslatef(-camerax, 0.0f, -cameraz);
 
 		// set light position
 		// float[] lightdir = myTerrain.getSunlight();
@@ -142,7 +152,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 		// System.out.println("light position: " + myLightPosition[0] + " " +
 		// myLightPosition[1] + " " + myLightPosition[2]);
-		// drawCoordinateFrame(gl);
+		drawCoordinateFrame(gl);
 
 		// set material properties to grass
 		float[] diffuseCoeff = { 0.1f, 0.6f, 0.2f, 1.0f };
@@ -170,22 +180,13 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff2, 0);
 		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong2);
 		drawTrees(gl);
-		
+
 		List<Road> roads = myTerrain.roads();
-        for(int i = 0; i < roads.size(); i++) {
-        		gl.glPushMatrix();
-            	drawRoad(gl, roads.get(i));
-        		gl.glPopMatrix();
-        }
-        
-        // using vbos to draw objects
-        gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 8);
-        gl.glRotated(degree, 0, 1, 0);
-        degree++;
-        gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
-        gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
-    		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
-    		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
+		for (int i = 0; i < roads.size(); i++) {
+			gl.glPushMatrix();
+			drawRoad(gl, roads.get(i));
+			gl.glPopMatrix();
+		}
 	}
 
 	private void drawRoad(GL2 gl, Road road) {
@@ -193,19 +194,21 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// TODO: try to set the height of the road according to the terrain
 		// in this version, the road has the same height/altitude
 		double[] p = road.point(0);
-		// shift the height a little bit so that it will be drawn above the terrain
+		// shift the height a little bit so that it will be drawn above the
+		// terrain
 		double height = myTerrain.altitude(p[0], p[1]) + 0.1;
 		for (int i = 0; i < ROAD_SEG_NUM - 1; i++) {
-			double t = road.size()/(double)ROAD_SEG_NUM * i;
+			double t = road.size() / (double) ROAD_SEG_NUM * i;
 			double[] p1 = road.edgePoint(t, false);
 			double[] p2 = road.edgePoint(t, true);
-			double[] p3 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, true);
-			double[] p4 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, false);
+			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
+			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
+			
 			gl.glVertex3d(p1[0], height, p1[1]);
 			gl.glVertex3d(p2[0], height, p2[1]);
 			gl.glVertex3d(p3[0], height, p3[1]);
 			gl.glVertex3d(p4[0], height, p4[1]);
-			
+
 		}
 		gl.glEnd();
 	}
@@ -217,9 +220,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glTranslated(pos[0], pos[1], pos[2]);
 			gl.glScaled(0.5, 0.5, 0.5);
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[1].getTextureId());
+			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 			// draw around
 			gl.glBegin(GL2.GL_QUAD_STRIP);
-			for (int j = 0; j < TREE_TRUNK_NUM+1; j++) {
+
+			for (int j = 0; j < TREE_TRUNK_NUM + 1; j++) {
 				double x = Math.cos(2 * j * TREE_RADIUS * Math.PI / TREE_TRUNK_NUM);
 				double z = Math.sin(2 * j * TREE_RADIUS * Math.PI / TREE_TRUNK_NUM);
 				gl.glNormal3d(x, 0, z);
@@ -231,9 +236,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glEnd();
 
 			// draw top ball
-			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0].getTextureId());
 			GLU glu = new GLU();
 			gl.glTranslated(0, TREE_HEIGHT, 0);
+			// glut.glutSolidSphere(3, 24, 24);
 			GLUquadric quadric = glu.gluNewQuadric();
 			glu.gluQuadricTexture(quadric, true);
 			glu.gluQuadricNormals(quadric, GLU.GLU_SMOOTH);
@@ -254,9 +259,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// the point to the right and the point down it
 			//
 			// this point *-------* right point
-			//            |      /|
-			//            |    /  |
-			//            |  /    |
+			// | /|
+			// | / |
+			// | / |
 			// down point *-------* corner point
 			//
 			for (int i = 0; i < terrainWidth - 1; i++) {
@@ -265,21 +270,26 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 					double[] downPoint = { i, myTerrain.getGridAltitude(i, j + 1), j + 1 };
 					double[] rightPoint = { i + 1, myTerrain.getGridAltitude(i + 1, j), j };
 					double[] cornerPoint = { i + 1, myTerrain.getGridAltitude(i + 1, j + 1), j + 1 };
+
 					double[] n1 = MathUtil.normal(thisPoint, downPoint, rightPoint);
 					double[] n2 = MathUtil.normal(downPoint, cornerPoint, rightPoint);
+
 					gl.glNormal3dv(n1, 0);
-					gl.glTexCoord2d(1.0/terrainWidth * i, 1.0/terrainHeight * j);
+					gl.glTexCoord2d(1.0 / terrainWidth * i, 1.0 / terrainHeight * j);
 					gl.glVertex3dv(thisPoint, 0);
-					gl.glTexCoord2d(1.0/terrainWidth * i, 1.0/terrainHeight * (j+1));
+
+					gl.glTexCoord2d(1.0 / terrainWidth * i, 1.0 / terrainHeight * (j + 1));
 					gl.glVertex3dv(downPoint, 0);
-					gl.glTexCoord2d(1.0/terrainWidth * (i+1), 1.0/terrainHeight * j);
+
+					gl.glTexCoord2d(1.0 / terrainWidth * (i + 1), 1.0 / terrainHeight * j);
 					gl.glVertex3dv(rightPoint, 0);
+
 					gl.glNormal3dv(n2, 0);
-					gl.glTexCoord2d(1.0/terrainWidth * i, 1.0/terrainHeight * (j+1));
+					gl.glTexCoord2d(1.0 / terrainWidth * i, 1.0 / terrainHeight * (j + 1));
 					gl.glVertex3dv(downPoint, 0);
-					gl.glTexCoord2d(1.0/terrainWidth * (i+1), 1.0/terrainHeight * (j+1));
+					gl.glTexCoord2d(1.0 / terrainWidth * (i + 1), 1.0 / terrainHeight * (j + 1));
 					gl.glVertex3dv(cornerPoint, 0);
-					gl.glTexCoord2d(1.0/terrainWidth * (i+1), 1.0/terrainHeight * j);
+					gl.glTexCoord2d(1.0 / terrainWidth * (i + 1), 1.0 / terrainHeight * j);
 					gl.glVertex3dv(rightPoint, 0);
 				}
 			}
@@ -310,6 +320,21 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnd();
 	}
 
+	private void setCamera(GL2 gl, GLU glu, float distance) {
+		// Change to projection matrix.
+		gl.glMatrixMode(GL2.GL_PROJECTION);
+		gl.glLoadIdentity();
+
+		// Perspective.
+		float widthHeightRatio = (float) getWidth() / (float) getHeight();
+		glu.gluPerspective(45, widthHeightRatio, 1, 1000);
+		glu.gluLookAt(5, 6, distance, 0, 0, 0, 0, 1, 0);
+
+		// Change back to model view matrix.
+		gl.glMatrixMode(GL2.GL_MODELVIEW);
+		gl.glLoadIdentity();
+	}
+
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
 	}
@@ -322,8 +347,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnable(GL2.GL_LIGHTING);
 		gl.glEnable(GL2.GL_LIGHT0);
 		gl.glEnable(GL2.GL_TEXTURE_2D);
-		gl.glEnable(GL2.GL_NORMALIZE);
-		
+
 		// set light properties
 		float[] amb = { 0.1f, 0.2f, 0.3f, 1.0f };
 		float[] dif = { 1.0f, 0.0f, 0.1f, 1.0f };
@@ -338,16 +362,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures = new MyTexture[NUM_TEXTURES];
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
-		//textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", false);
-		
-		// load vbos
-		gl.glGenBuffers(3, bufferIDs, 0);
-		FloatBuffer posData = Buffers.newDirectFloatBuffer(MySpecialObject.getPoints());
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, 
-				MySpecialObject.lengthInBytes(), 
-				posData, 
-				GL2.GL_STATIC_DRAW);
 	}
 
 	@Override
@@ -424,6 +438,27 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 		case KeyEvent.VK_PAGE_DOWN:
 			lookupdown -= 2.0f;
+			break;
+
+		case KeyEvent.VK_W:
+			xpos -= (float) Math.sin(Math.toRadians(heading)) * 0.1f;
+			zpos -= (float) Math.cos(Math.toRadians(heading)) * 0.1f;
+			break;
+		case KeyEvent.VK_S:
+			xpos += (float) Math.sin(Math.toRadians(heading)) * 0.1f;
+			zpos += (float) Math.cos(Math.toRadians(heading)) * 0.1f;
+			break;
+		case KeyEvent.VK_D:
+			camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
+			cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
+			break;
+		case KeyEvent.VK_A:
+			camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
+			cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
+			break;
+			
+		case KeyEvent.VK_1:
+			//setCamera(, null, camerax);
 			break;
 		}
 

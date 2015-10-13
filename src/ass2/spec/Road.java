@@ -232,6 +232,7 @@ public class Road {
     		double[] p = new double[2];
     		p[0] = line[1];
     		p[1] = 0-line[0];
+    		p = normalize(p);
     		return p;
     }
     
@@ -245,6 +246,7 @@ public class Road {
     		double[] p = new double[2];
     		p[0] = 0 - line[1];
     		p[1] = line[0];
+    		p = normalize(p);
     		return p;
     }
     
@@ -280,7 +282,7 @@ public class Road {
     			perp = leftPerpendicular(tangentVector);
     		}
     		// TODO: adjust the divider so that the road looks nice and make the width right
-    		edge = moveAlong(perp, p, myWidth/5.0);
+    		edge = moveAlong(perp, p, myWidth/2.0);
     		return edge;
     }
 }

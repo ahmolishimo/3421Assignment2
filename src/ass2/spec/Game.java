@@ -11,6 +11,7 @@ import javax.media.opengl.GL;
 import javax.media.opengl.glu.GLU;
 import javax.media.opengl.glu.GLUquadric;
 import javax.media.opengl.GL2;
+import javax.media.opengl.GL2ES2;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLEventListener;
 import javax.media.opengl.GLProfile;
@@ -22,6 +23,9 @@ import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
+
+import ass2.spec.Shader;
+import ass2.spec.Shader.CompilationException;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -36,11 +40,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private Terrain myTerrain;
 	private float[] myLightPosition;
 
-	private final int NUM_TEXTURES = 2;
+	private final int NUM_TEXTURES = 3;
 	private MyTexture[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
-
+	private String bushTextureFileName = "src/ass2/spec/bush.jpg";
+	
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
@@ -69,7 +74,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private float cameraz;
 	// array to keep track of keys that were pressed
 	private boolean[] keys = new boolean[200];
-
+	
+	private String VERTEX_SHADER = "src/ass2/spec/mySpecialObjectVertex.glsl";
+	private String FRAGMENT_SHADER = "src/ass2/spec/mySpecialObjectFragment.glsl";
+	private int shaderProgram;
+	
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myLightPosition = new float[3];
@@ -159,7 +168,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glPopMatrix();
 		}
 		// using vbos to draw objects
+		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
+		gl.glUseProgram(0);
 	}
 
 	private void setMaterialForGrass(GL2 gl) {
@@ -275,7 +286,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 			// draw top ball
 			//gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
-			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0].getTextureId());
+			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[2].getTextureId());
 			setMaterialForTreeBall(gl);
 			GLU glu = new GLU();
 			gl.glTranslated(0, TREE_HEIGHT, 0);
@@ -404,14 +415,55 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures = new MyTexture[NUM_TEXTURES];
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
+		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
 		
 		// load vbos
 		gl.glGenBuffers(1, bufferIDs, 0);
 		FloatBuffer posData = Buffers.newDirectFloatBuffer(MySpecialObject.getPoints());
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
 		gl.glBufferData(GL2.GL_ARRAY_BUFFER, MySpecialObject.lengthInBytes(), posData, GL2.GL_STATIC_DRAW);
+		
+		// init shaders
+		try {
+			initShader(gl);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
+	
+	private void initShader(GL2 gl) throws Exception {
+		Shader vertexShader = new Shader(GL2.GL_VERTEX_SHADER, new File(VERTEX_SHADER));
+		//Shader vertexShader = new Shader(GL2.GL_VERTEX_SHADER, v);
+        vertexShader.compile(gl);
+        Shader fragmentShader = new Shader(GL2.GL_FRAGMENT_SHADER, new File(FRAGMENT_SHADER));
+        fragmentShader.compile(gl);
+        //Each shaderProgram must have
+        //one vertex shader and one fragment shader.
+        shaderProgram = gl.glCreateProgram();
+        gl.glAttachShader(shaderProgram, vertexShader.getID());
+        gl.glAttachShader(shaderProgram, fragmentShader.getID());
+        gl.glLinkProgram(shaderProgram);
+        int[] error = new int[2];
+        gl.glGetProgramiv(shaderProgram, GL2ES2.GL_LINK_STATUS, error, 0);
+        if (error[0] != GL.GL_TRUE) {
+            int[] logLength = new int[1];
+            gl.glGetProgramiv(shaderProgram, GL2ES2.GL_INFO_LOG_LENGTH, logLength, 0);
 
+            byte[] log = new byte[logLength[0]];
+            gl.glGetProgramInfoLog(shaderProgram, logLength[0], (int[]) null, 0, log, 0);
+
+            System.out.printf("Failed to compile shader! %s\n", new String(log));
+            throw new CompilationException("Error compiling the shader: "
+                    + new String(log));
+        }
+        gl.glValidateProgram(shaderProgram);
+        gl.glGetProgramiv(shaderProgram, GL2ES2.GL_VALIDATE_STATUS, error, 0);
+        if (error[0] != GL.GL_TRUE) {
+            System.out.printf("Failed to validate shader!\n");
+            throw new Exception("program failed to validate");
+        }
+	}
+	
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
 		GL2 gl = drawable.getGL().getGL2();

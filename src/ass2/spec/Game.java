@@ -56,21 +56,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private int bufferIDs[] = new int[1];
 	private int degree = 0;
 
-	// X positon, Y axis rotation and Z position
-	private float xpos;
-	private float yrot;
-	private float zpos;
-
-	// heading parameters for look up and down
-	private float heading;
-	private float lookupdown = 0.0f;
-
-	// walkbias parameters
-	private float walkbias = 0.0f;
-	private float walkbiasangle = 0.0f;
-
 	// define angle of position
 	private float angle = 0.0f;
+
+	// define view mode
+	private boolean changeView = false;
 
 	// define position of camera
 	private float x = 0.0f;
@@ -107,10 +97,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		GLJPanel panel = new GLJPanel();
 		panel.addGLEventListener(this);
 		panel.addKeyListener(this);
+
 		// Add an animator to call 'display' at 60fps
 		FPSAnimator animator = new FPSAnimator(60);
 		animator.add(panel);
 		animator.start();
+
 		getContentPane().add(panel);
 		setSize(800, 600);
 		setVisible(true);
@@ -137,48 +129,38 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 
-		// set camera
+		// set perspective camera
 		GLU glu = new GLU();
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
 
-		// Perspective
 		float widthHeightRatio = (float) getWidth() / (float) getHeight();
 		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
 
-		// Change back to model view matrix.
+		// change back to model view matrix.
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
+
+		// set the position of perspective camera
 		ly = (float) myTerrain.altitude(x, z) + 0.5f;
-		// glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
+		//glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
 		glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
 
 		// draw avatar
-		// gl.glColor3f(0, 1, 0);
-		// GLUT glut = new GLUT();
-		// glut.glutSolidCube(1);
+		if (changeView) {
+			gl.glPushMatrix();
+			gl.glTranslated(x, ly, z);
+			gl.glScaled(0.3, 0.3, 0.3);
+			gl.glRotated(angle, 0, 1, 0);
 
-		// translation and rotation
-		// float xTrans = -xpos;
-		// float yTrans = walkbias - 0.43f;
-		// float zTrans = -zpos;
-		// float sceneRot = 360.0f - yrot;
-		//
-		// // 3rd person camera
-		// camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
-		// cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
-		//
-		// // perform translations and rotations
-		// gl.glRotatef(lookupdown, 1.0f, 0.0f, 0.0f);
-		// gl.glRotatef(sceneRot, 0.0f, 1.0f, 0.0f);
-		// gl.glTranslatef(xTrans, yTrans, zTrans);
-
-		// gl.glRotatef(360.0f - yrot, 0.0f, 1.0f, 0.0f);
-		// gl.glTranslatef(-camerax, 0.0f, -cameraz);
-
+			gl.glColor3f(1, 0, 0);
+			GLUT glut = new GLUT();
+			glut.glutWireTeapot(1);
+			gl.glPopMatrix();
+		}
 		// set light position
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
-		//drawCoordinateFrame(gl);
+		// drawCoordinateFrame(gl);
 		setMaterialForGrass(gl);
 		drawTerrain(gl);
 		drawTrees(gl);
@@ -512,17 +494,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// break;
 
 		case KeyEvent.VK_UP:
-			// xpos -= (float) Math.sin(Math.toRadians(heading)) * 0.1f;
-			// zpos -= (float) Math.cos(Math.toRadians(heading)) * 0.1f;
-			//
-			// if (walkbiasangle >= 359.0f)
-			// walkbiasangle = 0.0f;
-			// else
-			// walkbiasangle += 10.0f;
-			//
-			// walkbias = (float) Math.sin(Math.toRadians(walkbiasangle)) /
-			// 20.0f;
-
+			// moving forward
 			z += Math.cos(Math.toRadians(angle)) * increment;
 			x += Math.sin(Math.toRadians(angle)) * increment;
 
@@ -532,17 +504,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			break;
 
 		case KeyEvent.VK_DOWN:
-			// xpos += (float) Math.sin(Math.toRadians(heading)) * 0.1f;
-			// zpos += (float) Math.cos(Math.toRadians(heading)) * 0.1f;
-			//
-			// if (walkbiasangle <= 1.0f)
-			// walkbiasangle = 359.0f;
-			// else
-			// walkbiasangle -= 10.0f;
-			//
-			// walkbias = (float) Math.sin(Math.toRadians(walkbiasangle)) /
-			// 20.0f;
-
+			// moving backward
 			z -= Math.cos(Math.toRadians(angle)) * increment;
 			x -= Math.sin(Math.toRadians(angle)) * increment;
 
@@ -551,46 +513,22 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			break;
 
 		case KeyEvent.VK_RIGHT:
-			// heading -= 3.0f;
-			// yrot = heading;
-			// NEW
-			// angle += 0.01f;
-			// lx = (float) Math.sin(angle);
-			// lz = (float) -Math.cos(angle);
-			// x += 0.1f;
-
+			// turning right
 			angle -= incrementAngle;
-			// System.out.println(angle);
-			System.out.println(Math.toRadians(angle));
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * radius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * radius);
-			System.out.println(angle);
 			break;
 
 		case KeyEvent.VK_LEFT:
-			// heading += 3.0f;
-			// yrot = heading;
-
-			// NEW
-			// angle -= 0.01f;
-			// lx = (float) Math.sin(angle);
-			// lz = (float) -Math.cos(angle);
-
-			// x -= 0.1f;
-
+			// turning left
 			angle += incrementAngle;
-			// System.out.println(angle);
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * radius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * radius);
-			System.out.println(angle);
 			break;
 
-		case KeyEvent.VK_PAGE_UP:
-			lookupdown += 2.0f;
-			break;
-
-		case KeyEvent.VK_PAGE_DOWN:
-			lookupdown -= 2.0f;
+		case KeyEvent.VK_1:
+			// change to 3rd person view
+			changeView = !changeView;
 			break;
 		}
 

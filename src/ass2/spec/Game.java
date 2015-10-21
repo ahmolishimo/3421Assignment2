@@ -45,7 +45,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
 	private String bushTextureFileName = "src/ass2/spec/bush.jpg";
-	
+
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
@@ -55,7 +55,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	// used for special object rendering with vbos
 	private int bufferIDs[] = new int[1];
 	private int degree = 0;
-	
+
 	// X positon, Y axis rotation and Z position
 	private float xpos;
 	private float yrot;
@@ -69,16 +69,25 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private float walkbias = 0.0f;
 	private float walkbiasangle = 0.0f;
 
-	// 3rd person view
-	private float camerax;
-	private float cameraz;
-	// array to keep track of keys that were pressed
+	// define angle of position
+	private float angle = 0.0f;
+
+	// define position of camera
+	private float x = 0.0f;
+	private float y = 2.0f;
+	private float z = 0.0f;
+
+	// define center point of camera
+	private float lx = 0.0f;
+	private float ly = 2.0f;
+	private float lz = 1.0f;
+
 	private boolean[] keys = new boolean[200];
-	
+
 	private String VERTEX_SHADER = "src/ass2/spec/mySpecialObjectVertex.glsl";
 	private String FRAGMENT_SHADER = "src/ass2/spec/mySpecialObjectFragment.glsl";
 	private int shaderProgram;
-	
+
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myLightPosition = new float[3];
@@ -127,33 +136,45 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
-		
+
 		// set camera
 		GLU glu = new GLU();
-		setCamera(gl, glu, 10);
-		
+		gl.glMatrixMode(GL2.GL_PROJECTION);
+		gl.glLoadIdentity();
+
+		// Perspective
+		float widthHeightRatio = (float) getWidth() / (float) getHeight();
+		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
+
+		// Change back to model view matrix.
+		gl.glMatrixMode(GL2.GL_MODELVIEW);
+		gl.glLoadIdentity();
+		ly = (float) myTerrain.altitude(x, z) + 0.5f;
+		// glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
+		glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
+
 		// draw avatar
-		gl.glColor3f(0, 1, 0);
-		GLUT glut = new GLUT();
-		glut.glutSolidCube(1);
+		// gl.glColor3f(0, 1, 0);
+		// GLUT glut = new GLUT();
+		// glut.glutSolidCube(1);
 
 		// translation and rotation
-		float xTrans = -xpos;
-		float yTrans = walkbias - 0.43f;
-		float zTrans = -zpos;
-		float sceneRot = 360.0f - yrot;
+		// float xTrans = -xpos;
+		// float yTrans = walkbias - 0.43f;
+		// float zTrans = -zpos;
+		// float sceneRot = 360.0f - yrot;
+		//
+		// // 3rd person camera
+		// camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
+		// cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
+		//
+		// // perform translations and rotations
+		// gl.glRotatef(lookupdown, 1.0f, 0.0f, 0.0f);
+		// gl.glRotatef(sceneRot, 0.0f, 1.0f, 0.0f);
+		// gl.glTranslatef(xTrans, yTrans, zTrans);
 
-		// 3rd person camera
-		camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
-		cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
-
-		// perform translations and rotations
-		gl.glRotatef(lookupdown, 1.0f, 0.0f, 0.0f);
-		gl.glRotatef(sceneRot, 0.0f, 1.0f, 0.0f);
-		gl.glTranslatef(xTrans, yTrans, zTrans);
-
-		//gl.glRotatef(360.0f - yrot, 0.0f, 1.0f, 0.0f);
-		//gl.glTranslatef(-camerax, 0.0f, -cameraz);
+		// gl.glRotatef(360.0f - yrot, 0.0f, 1.0f, 0.0f);
+		// gl.glTranslatef(-camerax, 0.0f, -cameraz);
 
 		// set light position
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
@@ -173,12 +194,67 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glUseProgram(0);
 	}
 
+	@Override
+	public void dispose(GLAutoDrawable drawable) {
+	}
+
+	@Override
+	public void init(GLAutoDrawable drawable) {
+		GL2 gl = drawable.getGL().getGL2();
+		gl.glClearColor(1, 1, 1, 1);
+		gl.glEnable(GL2.GL_DEPTH_TEST);
+		gl.glEnable(GL2.GL_LIGHTING);
+		gl.glEnable(GL2.GL_LIGHT0);
+		gl.glEnable(GL2.GL_TEXTURE_2D);
+
+		// set light properties
+		float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
+		float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
+		float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
+
+		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
+
+		// initialize textures
+		textures = new MyTexture[NUM_TEXTURES];
+		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
+		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
+		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
+
+		// load vbos
+		gl.glGenBuffers(1, bufferIDs, 0);
+		FloatBuffer posData = Buffers.newDirectFloatBuffer(MySpecialObject.getPoints());
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
+		gl.glBufferData(GL2.GL_ARRAY_BUFFER, MySpecialObject.lengthInBytes(), posData, GL2.GL_STATIC_DRAW);
+
+		// init shaders
+		try {
+			initShader(gl);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+		// GL2 gl = drawable.getGL().getGL2();
+		// gl.glMatrixMode(GL2.GL_PROJECTION);
+		// gl.glLoadIdentity();
+		//
+		// gl.glOrtho(-10, 10, -10, 10, -20, 20);
+		// gl.glFrustum(-1, 1, -1, 1, 2, 100);
+		// GLU glu = new GLU();
+		// glu.gluPerspective(60, 1, 1, 20);
+	}
+
 	private void setMaterialForGrass(GL2 gl) {
 		// set material properties to grass
 		float[] ambientCoeff = { 0.5f, 0.5f, 0.5f, 1.0f };
 		float[] diffuseCoeff = { 0.1f, 0.7f, 0.3f, 1.0f };
 		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
-		float[] emissionCoeff = {0.0f, 0.0f, 0.0f, 1.0f};
+		float[] emissionCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
 		float phong = 10f;
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
@@ -186,7 +262,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
 	}
-	
+
 	private void setMaterialForTrunk(GL2 gl) {
 		// change material properties to trunk
 		float[] ambientCoeff2 = { 0.7f, 0.5f, 0.5f, 1.0f };
@@ -194,26 +270,26 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
 	}
-	
+
 	private void setMaterialForRoad(GL2 gl) {
 		float[] ambientCoeff2 = { 0.3f, 0f, 0f, 1.0f };
 		float[] diffuseCoeff2 = { 1f, 0.1f, 0.1f, 1.0f };
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
 	}
-	
+
 	private void setMaterialForTreeBall(GL2 gl) {
 		float[] ambientCoeff2 = { 0.2f, 0.6f, 0.3f, 1.0f };
 		float[] diffuseCoeff2 = { 0.2f, 0.6f, 0.3f, 1.0f };
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
 	}
-	
+
 	private void setMaterialForSpecialObject(GL2 gl) {
 		float[] ambientCoeff = { 0.3f, 0.3f, 0.3f, 1.0f };
 		float[] diffuseCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
 		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
-		float[] emissionCoeff = {0.0f, 1f, 1f, 1.0f};
+		float[] emissionCoeff = { 0.0f, 1f, 1f, 1.0f };
 		float phong = 10f;
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
@@ -221,22 +297,22 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
 	}
-	
+
 	private void drawSpecialObject(GL2 gl) {
 		setMaterialForSpecialObject(gl);
-        gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 4);
-        gl.glRotated(degree, 0, 1, 0);
-        degree++;
-        gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
-        gl.glLineWidth(10);
-        gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
-        gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
-    		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
-    		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
-    		gl.glLineWidth(1);
-    		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+		gl.glTranslated(2, myTerrain.altitude(2, 8) + 0.1, 4);
+		gl.glRotated(degree, 0, 1, 0);
+		degree++;
+		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+		gl.glLineWidth(10);
+		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
+		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
+		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
+		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
+		gl.glLineWidth(1);
+		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 	}
-	
+
 	private void drawRoad(GL2 gl, Road road) {
 		setMaterialForRoad(gl);
 		gl.glBegin(GL2.GL_QUADS);
@@ -252,7 +328,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			double[] p2 = road.edgePoint(t, true);
 			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
 			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
-			
+
 			gl.glVertex3d(p1[0], height, p1[1]);
 			gl.glVertex3d(p2[0], height, p2[1]);
 			gl.glVertex3d(p3[0], height, p3[1]);
@@ -271,6 +347,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			setMaterialForTrunk(gl);
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[1].getTextureId());
 			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+
 			// draw around
 			gl.glBegin(GL2.GL_QUAD_STRIP);
 			for (int j = 0; j < TREE_TRUNK_NUM + 1; j++) {
@@ -285,7 +362,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glEnd();
 
 			// draw top ball
-			//gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[2].getTextureId());
 			setMaterialForTreeBall(gl);
 			GLU glu = new GLU();
@@ -305,7 +382,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		int terrainHeight = (int) myTerrain.size().getHeight();
 		// second, draw triangles
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[0].getTextureId());
-		//gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+		// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 		gl.glBegin(GL2.GL_TRIANGLES);
 		{
 			// for each point, draw a triangle with this point
@@ -373,104 +450,36 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnd();
 	}
 
-	private void setCamera(GL2 gl, GLU glu, float distance) {
-		// Change to projection matrix.
-		gl.glMatrixMode(GL2.GL_PROJECTION);
-		gl.glLoadIdentity();
-
-		// Perspective.
-		float widthHeightRatio = (float) getWidth() / (float) getHeight();
-		glu.gluPerspective(45, widthHeightRatio, 1, 1000);
-		glu.gluLookAt(5, 6, distance, 0, 0, 0, 0, 1, 0);
-
-		// Change back to model view matrix.
-		gl.glMatrixMode(GL2.GL_MODELVIEW);
-		gl.glLoadIdentity();
-	}
-
-	@Override
-	public void dispose(GLAutoDrawable drawable) {
-	}
-
-	@Override
-	public void init(GLAutoDrawable drawable) {
-		GL2 gl = drawable.getGL().getGL2();
-		gl.glClearColor(1, 1, 1, 1);
-		gl.glEnable(GL2.GL_DEPTH_TEST);
-		gl.glEnable(GL2.GL_LIGHTING);
-		gl.glEnable(GL2.GL_LIGHT0);
-		gl.glEnable(GL2.GL_TEXTURE_2D);
-
-		// set light properties
-		float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
-		float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
-		float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
-
-		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
-
-		// initialize textures
-		textures = new MyTexture[NUM_TEXTURES];
-		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
-		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
-		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
-		
-		// load vbos
-		gl.glGenBuffers(1, bufferIDs, 0);
-		FloatBuffer posData = Buffers.newDirectFloatBuffer(MySpecialObject.getPoints());
-		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
-		gl.glBufferData(GL2.GL_ARRAY_BUFFER, MySpecialObject.lengthInBytes(), posData, GL2.GL_STATIC_DRAW);
-		
-		// init shaders
-		try {
-			initShader(gl);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
 	private void initShader(GL2 gl) throws Exception {
 		Shader vertexShader = new Shader(GL2.GL_VERTEX_SHADER, new File(VERTEX_SHADER));
-		//Shader vertexShader = new Shader(GL2.GL_VERTEX_SHADER, v);
-        vertexShader.compile(gl);
-        Shader fragmentShader = new Shader(GL2.GL_FRAGMENT_SHADER, new File(FRAGMENT_SHADER));
-        fragmentShader.compile(gl);
-        //Each shaderProgram must have
-        //one vertex shader and one fragment shader.
-        shaderProgram = gl.glCreateProgram();
-        gl.glAttachShader(shaderProgram, vertexShader.getID());
-        gl.glAttachShader(shaderProgram, fragmentShader.getID());
-        gl.glLinkProgram(shaderProgram);
-        int[] error = new int[2];
-        gl.glGetProgramiv(shaderProgram, GL2ES2.GL_LINK_STATUS, error, 0);
-        if (error[0] != GL.GL_TRUE) {
-            int[] logLength = new int[1];
-            gl.glGetProgramiv(shaderProgram, GL2ES2.GL_INFO_LOG_LENGTH, logLength, 0);
+		// Shader vertexShader = new Shader(GL2.GL_VERTEX_SHADER, v);
+		vertexShader.compile(gl);
+		Shader fragmentShader = new Shader(GL2.GL_FRAGMENT_SHADER, new File(FRAGMENT_SHADER));
+		fragmentShader.compile(gl);
+		// Each shaderProgram must have
+		// one vertex shader and one fragment shader.
+		shaderProgram = gl.glCreateProgram();
+		gl.glAttachShader(shaderProgram, vertexShader.getID());
+		gl.glAttachShader(shaderProgram, fragmentShader.getID());
+		gl.glLinkProgram(shaderProgram);
+		int[] error = new int[2];
+		gl.glGetProgramiv(shaderProgram, GL2ES2.GL_LINK_STATUS, error, 0);
+		if (error[0] != GL.GL_TRUE) {
+			int[] logLength = new int[1];
+			gl.glGetProgramiv(shaderProgram, GL2ES2.GL_INFO_LOG_LENGTH, logLength, 0);
 
-            byte[] log = new byte[logLength[0]];
-            gl.glGetProgramInfoLog(shaderProgram, logLength[0], (int[]) null, 0, log, 0);
+			byte[] log = new byte[logLength[0]];
+			gl.glGetProgramInfoLog(shaderProgram, logLength[0], (int[]) null, 0, log, 0);
 
-            System.out.printf("Failed to compile shader! %s\n", new String(log));
-            throw new CompilationException("Error compiling the shader: "
-                    + new String(log));
-        }
-        gl.glValidateProgram(shaderProgram);
-        gl.glGetProgramiv(shaderProgram, GL2ES2.GL_VALIDATE_STATUS, error, 0);
-        if (error[0] != GL.GL_TRUE) {
-            System.out.printf("Failed to validate shader!\n");
-            throw new Exception("program failed to validate");
-        }
-	}
-	
-	@Override
-	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-		GL2 gl = drawable.getGL().getGL2();
-		gl.glMatrixMode(GL2.GL_PROJECTION);
-		gl.glLoadIdentity();
-		// gl.glOrtho(-10, 10, -10, 10, -20, 20);
-		gl.glFrustum(-1, 1, -1, 1, 2, 100);
+			System.out.printf("Failed to compile shader! %s\n", new String(log));
+			throw new CompilationException("Error compiling the shader: " + new String(log));
+		}
+		gl.glValidateProgram(shaderProgram);
+		gl.glGetProgramiv(shaderProgram, GL2ES2.GL_VALIDATE_STATUS, error, 0);
+		if (error[0] != GL.GL_TRUE) {
+			System.out.printf("Failed to validate shader!\n");
+			throw new Exception("program failed to validate");
+		}
 	}
 
 	@Override
@@ -481,7 +490,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	@Override
 	public void keyPressed(KeyEvent e) {
-		// TODO Auto-generated method stub
+		float increment = 0.1f;
+		float incrementAngle = 1.0f;
+		float radius = 1.0f;
+
 		switch (e.getKeyCode()) {
 		// case KeyEvent.VK_LEFT:
 		// myLightPosition[0] --;
@@ -500,36 +512,77 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// break;
 
 		case KeyEvent.VK_UP:
-			xpos -= (float) Math.sin(Math.toRadians(heading)) * 0.1f;
-			zpos -= (float) Math.cos(Math.toRadians(heading)) * 0.1f;
+			// xpos -= (float) Math.sin(Math.toRadians(heading)) * 0.1f;
+			// zpos -= (float) Math.cos(Math.toRadians(heading)) * 0.1f;
+			//
+			// if (walkbiasangle >= 359.0f)
+			// walkbiasangle = 0.0f;
+			// else
+			// walkbiasangle += 10.0f;
+			//
+			// walkbias = (float) Math.sin(Math.toRadians(walkbiasangle)) /
+			// 20.0f;
 
-			if (walkbiasangle >= 359.0f)
-				walkbiasangle = 0.0f;
-			else
-				walkbiasangle += 10.0f;
+			z += Math.cos(Math.toRadians(angle)) * increment;
+			x += Math.sin(Math.toRadians(angle)) * increment;
 
-			walkbias = (float) Math.sin(Math.toRadians(walkbiasangle)) / 20.0f;
+			lz += Math.cos(Math.toRadians(angle)) * increment;
+			lx += Math.sin(Math.toRadians(angle)) * increment;
+
 			break;
 
 		case KeyEvent.VK_DOWN:
-			xpos += (float) Math.sin(Math.toRadians(heading)) * 0.1f;
-			zpos += (float) Math.cos(Math.toRadians(heading)) * 0.1f;
+			// xpos += (float) Math.sin(Math.toRadians(heading)) * 0.1f;
+			// zpos += (float) Math.cos(Math.toRadians(heading)) * 0.1f;
+			//
+			// if (walkbiasangle <= 1.0f)
+			// walkbiasangle = 359.0f;
+			// else
+			// walkbiasangle -= 10.0f;
+			//
+			// walkbias = (float) Math.sin(Math.toRadians(walkbiasangle)) /
+			// 20.0f;
 
-			if (walkbiasangle <= 1.0f)
-				walkbiasangle = 359.0f;
-			else
-				walkbiasangle -= 10.0f;
+			z -= Math.cos(Math.toRadians(angle)) * increment;
+			x -= Math.sin(Math.toRadians(angle)) * increment;
 
-			walkbias = (float) Math.sin(Math.toRadians(walkbiasangle)) / 20.0f;
+			lz -= Math.cos(Math.toRadians(angle)) * increment;
+			lx -= Math.sin(Math.toRadians(angle)) * increment;
 			break;
+
 		case KeyEvent.VK_RIGHT:
-			heading -= 3.0f;
-			yrot = heading;
+			// heading -= 3.0f;
+			// yrot = heading;
+			// NEW
+			// angle += 0.01f;
+			// lx = (float) Math.sin(angle);
+			// lz = (float) -Math.cos(angle);
+			// x += 0.1f;
+
+			angle -= incrementAngle;
+			// System.out.println(angle);
+			System.out.println(Math.toRadians(angle));
+			lx = (float) (x + Math.sin(Math.toRadians(angle)) * radius);
+			lz = (float) (z + Math.cos(Math.toRadians(angle)) * radius);
+			System.out.println(angle);
 			break;
 
 		case KeyEvent.VK_LEFT:
-			heading += 3.0f;
-			yrot = heading;
+			// heading += 3.0f;
+			// yrot = heading;
+
+			// NEW
+			// angle -= 0.01f;
+			// lx = (float) Math.sin(angle);
+			// lz = (float) -Math.cos(angle);
+
+			// x -= 0.1f;
+
+			angle += incrementAngle;
+			// System.out.println(angle);
+			lx = (float) (x + Math.sin(Math.toRadians(angle)) * radius);
+			lz = (float) (z + Math.cos(Math.toRadians(angle)) * radius);
+			System.out.println(angle);
 			break;
 
 		case KeyEvent.VK_PAGE_UP:
@@ -538,27 +591,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 		case KeyEvent.VK_PAGE_DOWN:
 			lookupdown -= 2.0f;
-			break;
-
-		case KeyEvent.VK_W:
-			xpos -= (float) Math.sin(Math.toRadians(heading)) * 0.1f;
-			zpos -= (float) Math.cos(Math.toRadians(heading)) * 0.1f;
-			break;
-		case KeyEvent.VK_S:
-			xpos += (float) Math.sin(Math.toRadians(heading)) * 0.1f;
-			zpos += (float) Math.cos(Math.toRadians(heading)) * 0.1f;
-			break;
-		case KeyEvent.VK_D:
-			camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
-			cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
-			break;
-		case KeyEvent.VK_A:
-			camerax = (float) (10 * Math.sin((yrot) * Math.PI / 180) + xpos);
-			cameraz = (float) (10 * Math.cos((yrot) * Math.PI / 180) + zpos);
-			break;
-			
-		case KeyEvent.VK_1:
-			//setCamera(, null, camerax);
 			break;
 		}
 

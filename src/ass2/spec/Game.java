@@ -185,6 +185,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
 		gl.glUseProgram(0);
+
+		// draw animated pool
+		drawPool(gl);
 	}
 
 	@Override
@@ -356,6 +359,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void drawSpecialObject(GL2 gl) {
 		setMaterialForSpecialObject(gl);
+		gl.glPushMatrix();
 		gl.glTranslated(2, myTerrain.altitude(2, 8) + 0.1, 4);
 		gl.glRotated(degree, 0, 1, 0);
 		degree++;
@@ -367,6 +371,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
 		gl.glLineWidth(1);
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+		gl.glPopMatrix();
 	}
 
 	private void drawRoad(GL2 gl, Road road) {
@@ -489,7 +494,27 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnd();
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 	}
-
+	
+	private void drawPool(GL2 gl) {
+		gl.glPushMatrix();
+		double height = myTerrain.altitude(1, 5) + 0.01;
+		gl.glTranslated(1, height, 5);
+		int num = (degree / 5) % 16;
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[3].getTextureId());
+		gl.glBegin(GL2.GL_QUADS);
+		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // upper left
+		gl.glVertex3d(0, 0, 0);
+		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // lower left
+		gl.glVertex3d(0, 0, 1);
+		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // lower right
+		gl.glVertex3d(1, 0, 1);
+		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // upper right
+		gl.glVertex3d(1, 0, 0);
+		gl.glEnd();
+		gl.glPopMatrix();
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+	}
+	
 	private void drawCoordinateFrame(GL2 gl) {
 		// test, draw a coordinate frame
 		gl.glBegin(GL2.GL_LINES);

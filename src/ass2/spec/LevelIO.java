@@ -76,6 +76,14 @@ public class LevelIO {
                 terrain.addRoad(w, spine);
             }
         }
+        
+		if (jsonTerrain.has("others")) {
+			JSONArray jsonOthers = jsonTerrain.getJSONArray("others");
+			float ox = (float) jsonOthers.getDouble(0);
+			float oz = (float) jsonOthers.getDouble(1);
+			terrain.setOthers(ox, 0, oz);
+        }
+        
         return terrain;
     }
 

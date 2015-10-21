@@ -182,10 +182,17 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glPopMatrix();
 		}
 		// using vbos to draw objects
+		gl.glPushMatrix();
+		float[] othersPos = myTerrain.getOthers(); 
+		gl.glTranslated(othersPos[0], myTerrain.altitude(othersPos[0], othersPos[2]) + 0.01, othersPos[2]);
+		gl.glRotated(degree, 0, 1, 0);
+		degree++;
+		degree = degree % 360;
 		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
 		gl.glUseProgram(0);
-
+		gl.glPopMatrix();
+		
 		// draw animated pool
 		drawPool(gl);
 	}
@@ -359,10 +366,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void drawSpecialObject(GL2 gl) {
 		setMaterialForSpecialObject(gl);
-		gl.glPushMatrix();
-		gl.glTranslated(2, myTerrain.altitude(2, 8) + 0.1, 4);
-		gl.glRotated(degree, 0, 1, 0);
-		degree++;
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
 		gl.glLineWidth(10);
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
@@ -371,7 +374,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
 		gl.glLineWidth(1);
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
-		gl.glPopMatrix();
 	}
 
 	private void drawRoad(GL2 gl, Road road) {

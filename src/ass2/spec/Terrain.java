@@ -29,7 +29,8 @@ public class Terrain {
     private List<Tree> myTrees;
     private List<Road> myRoads;
     private float[] mySunlight;
-
+    private float[] myOthers;
+    
     /**
      * Create a new terrain
      *
@@ -42,6 +43,7 @@ public class Terrain {
         myTrees = new ArrayList<Tree>();
         myRoads = new ArrayList<Road>();
         mySunlight = new float[3];
+        myOthers = new float[3];
     }
     
     public Terrain(Dimension size) {
@@ -63,7 +65,11 @@ public class Terrain {
     public float[] getSunlight() {
         return mySunlight;
     }
-
+    
+    public float[] getOthers() {
+    		return myOthers;
+    }
+    
     /**
      * Set the sunlight direction. 
      * 
@@ -79,6 +85,11 @@ public class Terrain {
         mySunlight[2] = dz;        
     }
     
+    public void setOthers(float ox, float oy, float oz) {
+    		myOthers[0] = ox;
+    		myOthers[1] = oy;
+    		myOthers[2] = oz;
+    }
     /**
      * Resize the terrain, copying any old altitudes. 
      * 

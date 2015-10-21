@@ -40,11 +40,14 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private Terrain myTerrain;
 	private float[] myLightPosition;
 
-	private final int NUM_TEXTURES = 3;
+	private final int NUM_TEXTURES = 6;
 	private MyTexture[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
 	private String bushTextureFileName = "src/ass2/spec/bush.jpg";
+	private String poolAnimatedTextureFileName = "src/ass2/spec/animationpool.jpg";
+	private String iceTextureFileName = "src/ass2/spec/iceTexture.jpg";
+	private String fourFaceObjTextureFileName = "src/ass2/spec/fourfaceobjecttexture.jpg";
 
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
@@ -128,19 +131,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
-
-		// set perspective camera
 		GLU glu = new GLU();
-		gl.glMatrixMode(GL2.GL_PROJECTION);
-		gl.glLoadIdentity();
-
-		float widthHeightRatio = (float) getWidth() / (float) getHeight();
-		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
-
-		// change back to model view matrix.
-		gl.glMatrixMode(GL2.GL_MODELVIEW);
-		gl.glLoadIdentity();
-
+		
 		// set the position of perspective camera
 		ly = (float) myTerrain.altitude(x, z) + 0.5f;
 		//glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
@@ -204,6 +196,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
 		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
+		textures[3] = new MyTexture(gl, poolAnimatedTextureFileName, "jpg", true);
+		textures[4] = new MyTexture(gl, iceTextureFileName, "jpg", true);
+		textures[5] = new MyTexture(gl, fourFaceObjTextureFileName, "jpg", true);
 
 		// load vbos
 		gl.glGenBuffers(1, bufferIDs, 0);
@@ -221,14 +216,13 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-		// GL2 gl = drawable.getGL().getGL2();
-		// gl.glMatrixMode(GL2.GL_PROJECTION);
-		// gl.glLoadIdentity();
-		//
-		// gl.glOrtho(-10, 10, -10, 10, -20, 20);
-		// gl.glFrustum(-1, 1, -1, 1, 2, 100);
-		// GLU glu = new GLU();
-		// glu.gluPerspective(60, 1, 1, 20);
+		GL2 gl = drawable.getGL().getGL2();
+		
+		gl.glMatrixMode(GL2.GL_PROJECTION);
+		gl.glLoadIdentity();
+		GLU glu = new GLU();
+		float widthHeightRatio = (float) getWidth() / (float) getHeight();
+		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
 	}
 
 	private void setMaterialForGrass(GL2 gl) {
@@ -297,6 +291,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void drawRoad(GL2 gl, Road road) {
 		setMaterialForRoad(gl);
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[4].getTextureId());
 		gl.glBegin(GL2.GL_QUADS);
 		// TODO: try to set the height of the road according to the terrain
 		// in this version, the road has the same height/altitude
@@ -310,14 +305,19 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			double[] p2 = road.edgePoint(t, true);
 			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
 			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
-
+			
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 1);
 			gl.glVertex3d(p1[0], height, p1[1]);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 0);
 			gl.glVertex3d(p2[0], height, p2[1]);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 0);
 			gl.glVertex3d(p3[0], height, p3[1]);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 1);
 			gl.glVertex3d(p4[0], height, p4[1]);
 
 		}
 		gl.glEnd();
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 	}
 
 	private void drawTrees(GL2 gl) {
@@ -477,22 +477,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		float radius = 1.0f;
 
 		switch (e.getKeyCode()) {
-		// case KeyEvent.VK_LEFT:
-		// myLightPosition[0] --;
-		// break;
-		//
-		// case KeyEvent.VK_RIGHT:
-		// myLightPosition[0] ++;
-		// break;
-		//
-		// case KeyEvent.VK_UP:
-		// myLightPosition[1] ++;
-		// break;
-		//
-		// case KeyEvent.VK_DOWN:
-		// myLightPosition[1]--;
-		// break;
-
 		case KeyEvent.VK_UP:
 			// moving forward
 			z += Math.cos(Math.toRadians(angle)) * increment;

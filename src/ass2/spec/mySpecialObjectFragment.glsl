@@ -14,7 +14,7 @@ void main(void) {
 	vec4 diffuse;
 	float NdotL;
 	normal = normalize(N);
-	lightDir = normalize(vec3(-gl_LightSource[0].position.xyz + v.xyz));
+	lightDir = normalize(vec3(gl_LightSource[0].position.xyz - v.xyz));
     NdotL = max(dot(normal, lightDir), 0.0);
 	diffuse = NdotL * gl_FrontMaterial.diffuse * gl_LightSource[0].diffuse;
 	

@@ -40,11 +40,14 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private Terrain myTerrain;
 	private float[] myLightPosition;
 
-	private final int NUM_TEXTURES = 3;
+	private final int NUM_TEXTURES = 6;
 	private MyTexture[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
 	private String bushTextureFileName = "src/ass2/spec/bush.jpg";
+	private String poolAnimatedTextureFileName = "src/ass2/spec/animationpool.jpg";
+	private String iceTextureFileName = "src/ass2/spec/iceTexture.jpg";
+	private String fourFaceObjTextureFileName = "src/ass2/spec/fourfaceobjecttexture.jpg";
 	
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
@@ -82,10 +85,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myLightPosition = new float[3];
-		myLightPosition[0] = -1;
-		myLightPosition[1] = 1;
-		myLightPosition[2] = 0;
 		myTerrain = terrain;
+		myLightPosition = myTerrain.getSunlight();
+//		myLightPosition[0] = 0 - myLightPosition[0];
+//		myLightPosition[1] = 0 - myLightPosition[1];
+//		myLightPosition[2] = 0 - myLightPosition[2];
+		
 	}
 
 	/**
@@ -131,7 +136,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// set camera
 		GLU glu = new GLU();
 		setCamera(gl, glu, 10);
-		
+		//glu.gluLookAt(0, 0, 0, 1, 0, 1, 0, 1, 0);
+		//glu.gluPerspective(60, 1, 2, 100);
 		// draw avatar
 		gl.glColor3f(0, 1, 0);
 		GLUT glut = new GLUT();
@@ -171,6 +177,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
 		gl.glUseProgram(0);
+		
+		// draw animated pool
+		drawPool(gl);
 	}
 
 	private void setMaterialForGrass(GL2 gl) {
@@ -196,8 +205,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	}
 	
 	private void setMaterialForRoad(GL2 gl) {
-		float[] ambientCoeff2 = { 0.3f, 0f, 0f, 1.0f };
-		float[] diffuseCoeff2 = { 1f, 0.1f, 0.1f, 1.0f };
+		float[] ambientCoeff2 = { 1f, 1f, 1f, 1.0f};
+		float[] diffuseCoeff2 = { 1f, 0.5f, 0.5f, 1.0f };
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
 	}
@@ -213,7 +222,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		float[] ambientCoeff = { 0.3f, 0.3f, 0.3f, 1.0f };
 		float[] diffuseCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
 		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
-		float[] emissionCoeff = {0.0f, 1f, 1f, 1.0f};
+		float[] emissionCoeff = { 0.0f, 1f, 1f, 1.0f };
 		float phong = 10f;
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
@@ -221,24 +230,47 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
 	}
+
+	private void drawPool(GL2 gl) {
+		gl.glPushMatrix();
+		double height = myTerrain.altitude(1, 5) + 0.1;
+		gl.glTranslated(1, height, 5);
+		int num = (degree / 5) % 16;
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[3].getTextureId());
+		gl.glBegin(GL2.GL_QUADS);
+		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // upper left
+		gl.glVertex3d(0, 0, 0);
+		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // lower left
+		gl.glVertex3d(0, 0, 1);
+		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // lower right
+		gl.glVertex3d(1, 0, 1);
+		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // upper right
+		gl.glVertex3d(1, 0, 0);
+		gl.glEnd();
+		gl.glPopMatrix();
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
+	}
 	
 	private void drawSpecialObject(GL2 gl) {
 		setMaterialForSpecialObject(gl);
+		gl.glPushMatrix();
         gl.glTranslated(2, myTerrain.altitude(2, 8)+0.1, 4);
         gl.glRotated(degree, 0, 1, 0);
         degree++;
-        gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
-        gl.glLineWidth(10);
+        //gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+        //gl.glLineWidth(10);
         gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
         gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
     		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
     		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
     		gl.glLineWidth(1);
     		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+    		gl.glPopMatrix();
 	}
 	
 	private void drawRoad(GL2 gl, Road road) {
 		setMaterialForRoad(gl);
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[4].getTextureId());
 		gl.glBegin(GL2.GL_QUADS);
 		// TODO: try to set the height of the road according to the terrain
 		// in this version, the road has the same height/altitude
@@ -253,13 +285,17 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
 			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
 			
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 1);
 			gl.glVertex3d(p1[0], height, p1[1]);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 0);
 			gl.glVertex3d(p2[0], height, p2[1]);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 0);
 			gl.glVertex3d(p3[0], height, p3[1]);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 1);
 			gl.glVertex3d(p4[0], height, p4[1]);
-
 		}
 		gl.glEnd();
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 	}
 
 	private void drawTrees(GL2 gl) {
@@ -416,6 +452,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
 		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
+		textures[3] = new MyTexture(gl, poolAnimatedTextureFileName, "jpg", true);
+		textures[4] = new MyTexture(gl, iceTextureFileName, "jpg", true);
+		textures[5] = new MyTexture(gl, fourFaceObjTextureFileName, "jpg", true);
 		
 		// load vbos
 		gl.glGenBuffers(1, bufferIDs, 0);

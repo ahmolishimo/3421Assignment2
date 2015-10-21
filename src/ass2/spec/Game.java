@@ -40,14 +40,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private Terrain myTerrain;
 	private float[] myLightPosition;
 
-	private final int NUM_TEXTURES = 6;
+	private final int NUM_TEXTURES = 3;
 	private MyTexture[] textures;
 	private String grassTextureFileName = "src/ass2/spec/grass.png";
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
 	private String bushTextureFileName = "src/ass2/spec/bush.jpg";
-	private String poolAnimatedTextureFileName = "src/ass2/spec/animationpool.jpg";
-	private String iceTextureFileName = "src/ass2/spec/iceTexture.jpg";
-	private String fourFaceObjTextureFileName = "src/ass2/spec/fourfaceobjecttexture.jpg";
 
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
@@ -61,22 +58,15 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	// define angle of position
 	private float angle = 0.0f;
-	private boolean rotateLeft = false;
-	private boolean rotateRight = false;
+
 	// define view mode
 	private boolean changeView = false;
 
-	private final float moveIncrement = 0.05f;
-	private final float rotateIncrement = 1.0f;
-	private final float lookAtPointRadius = 1.0f;
 	// define position of camera
 	private float x = 0.0f;
 	private float y = 2.0f;
 	private float z = 0.0f;
-	private boolean moveForward = false;
-	private boolean moveBackward = false;
-	private boolean translateLeft = false;
-	private boolean translateRight = false;
+
 	// define center point of camera
 	private float lx = 0.0f;
 	private float ly = 2.0f;
@@ -87,9 +77,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private String VERTEX_SHADER = "src/ass2/spec/mySpecialObjectVertex.glsl";
 	private String FRAGMENT_SHADER = "src/ass2/spec/mySpecialObjectFragment.glsl";
 	private int shaderProgram;
-	
-	private boolean night = false;
-	
+
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myLightPosition = new float[3];
@@ -140,37 +128,38 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
+
+		// set perspective camera
 		GLU glu = new GLU();
-		updateCamera();
+		gl.glMatrixMode(GL2.GL_PROJECTION);
+		gl.glLoadIdentity();
+
+		float widthHeightRatio = (float) getWidth() / (float) getHeight();
+		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
+
+		// change back to model view matrix.
+		gl.glMatrixMode(GL2.GL_MODELVIEW);
+		gl.glLoadIdentity();
+
 		// set the position of perspective camera
 		ly = (float) myTerrain.altitude(x, z) + 0.5f;
-		//glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
-		glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
+		glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
+		//glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
 
-		setLight(gl);
-		// set light position
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
-		
 		// draw avatar
 		if (changeView) {
 			gl.glPushMatrix();
 			gl.glTranslated(x, ly, z);
 			gl.glScaled(0.3, 0.3, 0.3);
 			gl.glRotated(angle, 0, 1, 0);
+
 			gl.glColor3f(1, 0, 0);
 			GLUT glut = new GLUT();
 			glut.glutWireTeapot(1);
-			// Create a spot light
-			// cutoff angle: 45 degrees
-			// attenuation factor: 4
-			if(night) {
-				float[] dir = {0, 0, 1, 0};
-				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
-				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
-				gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
-			}
 			gl.glPopMatrix();
 		}
+		// set light position
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
 		// drawCoordinateFrame(gl);
 		setMaterialForGrass(gl);
 		drawTerrain(gl);
@@ -185,9 +174,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
 		gl.glUseProgram(0);
-
-		// draw animated pool
-		drawPool(gl);
 	}
 
 	@Override
@@ -200,17 +186,24 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glClearColor(1, 1, 1, 1);
 		gl.glEnable(GL2.GL_DEPTH_TEST);
 		gl.glEnable(GL2.GL_LIGHTING);
-		gl.glEnable(GL2.GL_LIGHT0);		
+		gl.glEnable(GL2.GL_LIGHT0);
 		gl.glEnable(GL2.GL_TEXTURE_2D);
+
+		// set light properties
+		float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
+		float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
+		float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
+
+		gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
+		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
 
 		// initialize textures
 		textures = new MyTexture[NUM_TEXTURES];
 		textures[0] = new MyTexture(gl, grassTextureFileName, "png", true);
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
 		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
-		textures[3] = new MyTexture(gl, poolAnimatedTextureFileName, "jpg", true);
-		textures[4] = new MyTexture(gl, iceTextureFileName, "jpg", true);
-		textures[5] = new MyTexture(gl, fourFaceObjTextureFileName, "jpg", true);
 
 		// load vbos
 		gl.glGenBuffers(1, bufferIDs, 0);
@@ -228,86 +221,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-		GL2 gl = drawable.getGL().getGL2();
-		
-		gl.glMatrixMode(GL2.GL_PROJECTION);
-		gl.glLoadIdentity();
-		GLU glu = new GLU();
-		float widthHeightRatio = (float) getWidth() / (float) getHeight();
-		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
+		// GL2 gl = drawable.getGL().getGL2();
+		// gl.glMatrixMode(GL2.GL_PROJECTION);
+		// gl.glLoadIdentity();
+		//
+		// gl.glOrtho(-10, 10, -10, 10, -20, 20);
+		// gl.glFrustum(-1, 1, -1, 1, 2, 100);
+		// GLU glu = new GLU();
+		// glu.gluPerspective(60, 1, 1, 20);
 	}
-	
-	private void updateCamera() {
-		angle = angle % 360;
-		if(moveForward) {
-			z += Math.cos(Math.toRadians(angle)) * moveIncrement;
-			x += Math.sin(Math.toRadians(angle)) * moveIncrement;
-			lz += Math.cos(Math.toRadians(angle)) * moveIncrement;
-			lx += Math.sin(Math.toRadians(angle)) * moveIncrement;
-		}
-		if(moveBackward) {
-			z -= Math.cos(Math.toRadians(angle)) * moveIncrement;
-			x -= Math.sin(Math.toRadians(angle)) * moveIncrement;
-			lz -= Math.cos(Math.toRadians(angle)) * moveIncrement;
-			lx -= Math.sin(Math.toRadians(angle)) * moveIncrement;
-		}
-		if(translateLeft) {
-			z -= Math.sin(Math.toRadians(angle)) * moveIncrement;
-			x += Math.cos(Math.toRadians(angle)) * moveIncrement;
-			lz -= Math.sin(Math.toRadians(angle)) * moveIncrement;
-			lx += Math.cos(Math.toRadians(angle)) * moveIncrement;
-		}
-		if(translateRight) {
-			z += Math.sin(Math.toRadians(angle)) * moveIncrement;
-			x -= Math.cos(Math.toRadians(angle)) * moveIncrement;
-			lz += Math.sin(Math.toRadians(angle)) * moveIncrement;
-			lx -= Math.cos(Math.toRadians(angle)) * moveIncrement;
-		}
-		if(rotateLeft) {
-			angle += rotateIncrement;
-			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
-			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
-		}
-		if(rotateRight) {
-			angle -= rotateIncrement;
-			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
-			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
-		}
-	}
-	
-	private void setLight(GL2 gl) {
-		if(night) {
-			// night light
-			gl.glEnable(GL2.GL_LIGHT1);
-			float[] amb = { 0.1f, 0.1f, 0.1f, 1.0f };
-			float[] dif = { 0.2f, 0.2f, 0.2f, 1.0f };
-			float[] spe = { 0.0f, 0.0f, 0.0f, 1.0f };
-			gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
-			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
-			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
-			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
-			float[] amb1 = { 0.0f, 0.0f, 0.0f, 1.0f };
-			float[] dif1 = { 1f, 1f, 1f, 1.0f };
-			float[] spe1 = { 0.0f, 0.0f, 0.0f, 1.0f };
-			float[] lightPos = {x, y, z, 1};
-			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_POSITION, lightPos, 0);
-			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_AMBIENT, amb1, 0);
-			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_DIFFUSE, dif1, 0);
-			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPECULAR, spe1, 0);
-			
-		} else {
-			// day light
-			gl.glDisable(GL2.GL_LIGHT1);
-	 		float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
-			float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
-			float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
-			gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
-			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
-			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
-			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
-		}
-	}
-	
+
 	private void setMaterialForGrass(GL2 gl) {
 		// set material properties to grass
 		float[] ambientCoeff = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -359,7 +282,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void drawSpecialObject(GL2 gl) {
 		setMaterialForSpecialObject(gl);
-		gl.glPushMatrix();
 		gl.glTranslated(2, myTerrain.altitude(2, 8) + 0.1, 4);
 		gl.glRotated(degree, 0, 1, 0);
 		degree++;
@@ -371,12 +293,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
 		gl.glLineWidth(1);
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
-		gl.glPopMatrix();
 	}
 
 	private void drawRoad(GL2 gl, Road road) {
 		setMaterialForRoad(gl);
-		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[4].getTextureId());
 		gl.glBegin(GL2.GL_QUADS);
 		// TODO: try to set the height of the road according to the terrain
 		// in this version, the road has the same height/altitude
@@ -390,19 +310,14 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			double[] p2 = road.edgePoint(t, true);
 			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
 			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
-			
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 1);
+
 			gl.glVertex3d(p1[0], height, p1[1]);
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 0);
 			gl.glVertex3d(p2[0], height, p2[1]);
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 0);
 			gl.glVertex3d(p3[0], height, p3[1]);
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 1);
 			gl.glVertex3d(p4[0], height, p4[1]);
 
 		}
 		gl.glEnd();
-		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 	}
 
 	private void drawTrees(GL2 gl) {
@@ -494,27 +409,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnd();
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 	}
-	
-	private void drawPool(GL2 gl) {
-		gl.glPushMatrix();
-		double height = myTerrain.altitude(1, 5) + 0.01;
-		gl.glTranslated(1, height, 5);
-		int num = (degree / 5) % 16;
-		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[3].getTextureId());
-		gl.glBegin(GL2.GL_QUADS);
-		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // upper left
-		gl.glVertex3d(0, 0, 0);
-		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // lower left
-		gl.glVertex3d(0, 0, 1);
-		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // lower right
-		gl.glVertex3d(1, 0, 1);
-		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // upper right
-		gl.glVertex3d(1, 0, 0);
-		gl.glEnd();
-		gl.glPopMatrix();
-		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
-	}
-	
+
 	private void drawCoordinateFrame(GL2 gl) {
 		// test, draw a coordinate frame
 		gl.glBegin(GL2.GL_LINES);
@@ -571,104 +466,78 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	@Override
 	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+
 	}
 
 	@Override
 	public void keyPressed(KeyEvent e) {
+		float increment = 0.1f;
+		float incrementAngle = 1.0f;
+		float radius = 1.0f;
 
 		switch (e.getKeyCode()) {
+		// case KeyEvent.VK_LEFT:
+		// myLightPosition[0] --;
+		// break;
+		//
+		// case KeyEvent.VK_RIGHT:
+		// myLightPosition[0] ++;
+		// break;
+		//
+		// case KeyEvent.VK_UP:
+		// myLightPosition[1] ++;
+		// break;
+		//
+		// case KeyEvent.VK_DOWN:
+		// myLightPosition[1]--;
+		// break;
+
 		case KeyEvent.VK_UP:
 			// moving forward
-			moveForward = true;
+			z += Math.cos(Math.toRadians(angle)) * increment;
+			x += Math.sin(Math.toRadians(angle)) * increment;
+
+			lz += Math.cos(Math.toRadians(angle)) * increment;
+			lx += Math.sin(Math.toRadians(angle)) * increment;
+
 			break;
-			
-		case KeyEvent.VK_W:
-			moveForward = true;
-			break;
-			
-		case KeyEvent.VK_S:
-			moveBackward = true;
-			break;
-			
+
 		case KeyEvent.VK_DOWN:
 			// moving backward
-			moveBackward = true;
+			z -= Math.cos(Math.toRadians(angle)) * increment;
+			x -= Math.sin(Math.toRadians(angle)) * increment;
+
+			lz -= Math.cos(Math.toRadians(angle)) * increment;
+			lx -= Math.sin(Math.toRadians(angle)) * increment;
 			break;
 
 		case KeyEvent.VK_RIGHT:
 			// turning right
-			rotateRight = true;
+			angle -= incrementAngle;
+			lx = (float) (x + Math.sin(Math.toRadians(angle)) * radius);
+			lz = (float) (z + Math.cos(Math.toRadians(angle)) * radius);
 			break;
 
 		case KeyEvent.VK_LEFT:
 			// turning left
-			rotateLeft = true;
+			angle += incrementAngle;
+			lx = (float) (x + Math.sin(Math.toRadians(angle)) * radius);
+			lz = (float) (z + Math.cos(Math.toRadians(angle)) * radius);
 			break;
-			
-		case KeyEvent.VK_A:
-			// translate left
-			translateLeft = true;
-			break;
-			
-		case KeyEvent.VK_D:
-			// translate right
-			translateRight = true;
-			break;
-			
+
 		case KeyEvent.VK_1:
 			// change to 3rd person view
 			changeView = !changeView;
-			System.out.println(changeView);
-			break;
-			
-		case KeyEvent.VK_N:
-			night = !night;
 			break;
 		}
-		
+
 		if (e.getKeyCode() < 250)
 			keys[e.getKeyCode()] = true;
 	}
 
 	@Override
 	public void keyReleased(KeyEvent e) {
-		switch (e.getKeyCode()) {
-		case KeyEvent.VK_UP:
-			// moving forward
-			moveForward = false;
-			break;
-			
-		case KeyEvent.VK_W:
-			moveForward = false;
-			break;
-			
-		case KeyEvent.VK_DOWN:
-			// moving backward
-			moveBackward = false;
-			break;
-			
-		case KeyEvent.VK_S:
-			moveBackward = false;
-			break;
-			
-		case KeyEvent.VK_RIGHT:
-			// turning right
-			rotateRight = false;
-			break;
-
-		case KeyEvent.VK_LEFT:
-			// turning left
-			rotateLeft = false;
-			break;
-			
-		case KeyEvent.VK_A:
-			translateLeft = false;
-			break;
-			
-		case KeyEvent.VK_D:
-			translateRight = false;
-			break;
-		}
 		if (e.getKeyCode() < 250)
 			keys[e.getKeyCode()] = false;
 	}

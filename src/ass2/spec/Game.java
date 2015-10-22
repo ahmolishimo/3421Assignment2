@@ -46,9 +46,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private String trunkTextureFileName = "src/ass2/spec/trunk.png";
 	private String bushTextureFileName = "src/ass2/spec/bush.jpg";
 	private String poolAnimatedTextureFileName = "src/ass2/spec/animationpool.jpg";
-	private String iceTextureFileName = "src/ass2/spec/iceTexture.jpg";
-	private String fourFaceObjTextureFileName = "src/ass2/spec/fourfaceobjecttexture.jpg";
-
+	private String roadTextureFileName = "src/ass2/spec/bricks.png";
+	private String fourFaceObjTextureFileName = "src/ass2/spec/wood-box.jpg";
+	
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
@@ -67,7 +67,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private boolean changeView = false;
 
 	private final float moveIncrement = 0.05f;
-	private final float rotateIncrement = 1.0f;
+	private final float rotateIncrement = 5.0f;
 	private final float lookAtPointRadius = 1.0f;
 	// define position of camera
 	private float x = 0.0f;
@@ -151,6 +151,21 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// set light position
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
 		
+		// set night torch light
+		gl.glPushMatrix();
+		gl.glTranslated(x, ly, z);
+		gl.glRotated(angle, 0, 1, 0);
+		// Create a spot light
+		// cutoff angle: 45 degrees
+		// attenuation factor: 4
+		if(night) {
+			float[] dir = {0, 0, 1, 0};
+			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
+			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
+			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
+		}
+		gl.glPopMatrix();
+		
 		// draw avatar
 		if (changeView) {
 			gl.glPushMatrix();
@@ -160,15 +175,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glColor3f(1, 0, 0);
 			GLUT glut = new GLUT();
 			glut.glutWireTeapot(1);
-			// Create a spot light
-			// cutoff angle: 45 degrees
-			// attenuation factor: 4
-			if(night) {
-				float[] dir = {0, 0, 1, 0};
-				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
-				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
-				gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
-			}
 			gl.glPopMatrix();
 		}
 		// drawCoordinateFrame(gl);
@@ -183,9 +189,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		}
 		// using vbos to draw objects
 		gl.glPushMatrix();
+		setMaterialForSpecialObject(gl);
 		float[] othersPos = myTerrain.getOthers(); 
 		gl.glTranslated(othersPos[0], myTerrain.altitude(othersPos[0], othersPos[2]) + 0.01, othersPos[2]);
-		gl.glRotated(degree, 0, 1, 0);
+		//gl.glRotated(degree, 0, 1, 0);
 		degree++;
 		degree = degree % 360;
 		gl.glUseProgram(shaderProgram);
@@ -194,6 +201,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glPopMatrix();
 		
 		// draw animated pool
+		setMaterialForPool(gl);
 		drawPool(gl);
 	}
 
@@ -216,7 +224,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		textures[1] = new MyTexture(gl, trunkTextureFileName, "png", false);
 		textures[2] = new MyTexture(gl, bushTextureFileName, "jpg", true);
 		textures[3] = new MyTexture(gl, poolAnimatedTextureFileName, "jpg", true);
-		textures[4] = new MyTexture(gl, iceTextureFileName, "jpg", true);
+		textures[4] = new MyTexture(gl, roadTextureFileName, "png", true);
 		textures[5] = new MyTexture(gl, fourFaceObjTextureFileName, "jpg", true);
 
 		// load vbos
@@ -236,7 +244,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
 		GL2 gl = drawable.getGL().getGL2();
-		
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
 		GLU glu = new GLU();
@@ -315,6 +322,19 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		}
 	}
 	
+	private void setMaterialForSpecialObject(GL2 gl) {
+		float[] ambientCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
+		float[] diffuseCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
+		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float[] emissionCoeff = { 0.0f, 0f, 0f, 1.0f };
+		float phong = 10f;
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, specCoeff, 0);
+		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
+	}
+	
 	private void setMaterialForGrass(GL2 gl) {
 		// set material properties to grass
 		float[] ambientCoeff = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -338,7 +358,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	}
 
 	private void setMaterialForRoad(GL2 gl) {
-		float[] ambientCoeff2 = { 0.3f, 0f, 0f, 1.0f };
+		float[] ambientCoeff2 = { 0.9f, 0.3f, 0.3f, 1.0f };
 		float[] diffuseCoeff2 = { 1f, 0.1f, 0.1f, 1.0f };
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff2, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
@@ -351,11 +371,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff2, 0);
 	}
 
-	private void setMaterialForSpecialObject(GL2 gl) {
+	private void setMaterialForPool(GL2 gl) {
 		float[] ambientCoeff = { 0.3f, 0.3f, 0.3f, 1.0f };
-		float[] diffuseCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float[] diffuseCoeff = { 1f, 1f, 1f, 1.0f };
 		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
 		float[] emissionCoeff = { 0.0f, 1f, 1f, 1.0f };
+		//float[] emissionCoeff = { 0f, 0f, 0f, 1.0f };
 		float phong = 10f;
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
@@ -365,15 +386,17 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	}
 
 	private void drawSpecialObject(GL2 gl) {
-		setMaterialForSpecialObject(gl);
-		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
-		gl.glLineWidth(10);
+		int texUnitLoc = gl.glGetUniformLocation(shaderProgram, "texUnit1");
+		gl.glUniform1i(texUnitLoc, 0);
+		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[5].getTextureId());
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
+		gl.glEnableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
+		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
 		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
-		gl.glDrawArrays(GL2.GL_TRIANGLES, 0, MySpecialObject.numberOfPoints());
-		gl.glLineWidth(1);
-		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+		gl.glTexCoordPointer(2, GL.GL_FLOAT, 0, Float.BYTES*3*4*6);
+		gl.glNormalPointer(GL.GL_FLOAT, 0, Float.BYTES*3*4*6+Float.BYTES*2*4*6);
+		gl.glDrawArrays(GL2.GL_QUADS, 0, MySpecialObject.numberOfPoints());
 	}
 
 	private void drawRoad(GL2 gl, Road road) {

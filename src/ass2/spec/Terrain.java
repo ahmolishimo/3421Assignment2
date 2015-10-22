@@ -142,8 +142,8 @@ public class Terrain {
      */
     public double altitude(double x, double z) {
         double altitude = 0;
-        if(x > this.mySize.width || z > this.mySize.height) return 0;
-        if(x < 0 || z < 0) return 0;
+        if(x >= this.mySize.width-1 || z >= this.mySize.height-1) return 0;
+        if(x <= 0 || z <= 0) return 0;
         double x1 = Math.floor(x);
         double x2 = x1 + 1;
         double z1 = Math.floor(z);

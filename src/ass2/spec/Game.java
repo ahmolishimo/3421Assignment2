@@ -194,8 +194,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glColor3f(1, 0, 0);
 			GLUT glut = new GLUT();
 			glut.glutWireTeapot(1);
-<<<<<<< HEAD
-=======
 						
 			// Create a spot light
 			// cutoff angle: 45 degrees
@@ -206,7 +204,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
 				gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
 			}
->>>>>>> daf02c5d3848fd73da1c295b9f817c824f7e15fa
 			gl.glPopMatrix();
 		}
 		// drawCoordinateFrame(gl);

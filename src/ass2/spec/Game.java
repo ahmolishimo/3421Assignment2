@@ -169,6 +169,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// draw avatar
 		if (changeView) {
 			ly = (float) myTerrain.altitude(x, z) + 0.5f;
+			//y3 = (float) myTerrain.altitude(x3, z3) + 0.5f;
 			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
 			
 			gl.glPushMatrix();

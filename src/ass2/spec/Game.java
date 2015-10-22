@@ -73,10 +73,19 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private float x = 0.0f;
 	private float y = 2.0f;
 	private float z = 0.0f;
+	
+	// define position of 3rd person camera
+	private float x3;
+	private float y3;
+	private float z3;
+	//
 	private boolean moveForward = false;
 	private boolean moveBackward = false;
 	private boolean translateLeft = false;
 	private boolean translateRight = false;
+	
+	private boolean thirdPersonView = false;
+	
 	// define center point of camera
 	private float lx = 0.0f;
 	private float ly = 2.0f;
@@ -142,10 +151,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glLoadIdentity();
 		GLU glu = new GLU();
 		updateCamera();
+		
 		// set the position of perspective camera
-		ly = (float) myTerrain.altitude(x, z) + 0.5f;
+
 		//glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
-		glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
+		
+		if (!changeView) {
+			ly = (float) myTerrain.altitude(x, z) + 0.5f;
+			glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);			
+		}
+
 
 		setLight(gl);
 		// set light position
@@ -153,13 +168,17 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		
 		// draw avatar
 		if (changeView) {
+			ly = (float) myTerrain.altitude(x, z) + 0.5f;
+			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
+			
 			gl.glPushMatrix();
-			gl.glTranslated(x, ly, z);
+			gl.glTranslated(x, y, z);
 			gl.glScaled(0.3, 0.3, 0.3);
 			gl.glRotated(angle, 0, 1, 0);
 			gl.glColor3f(1, 0, 0);
 			GLUT glut = new GLUT();
 			glut.glutWireTeapot(1);
+						
 			// Create a spot light
 			// cutoff angle: 45 degrees
 			// attenuation factor: 4
@@ -246,32 +265,55 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	
 	private void updateCamera() {
 		angle = angle % 360;
+	
+		
+		if(thirdPersonView) {
+			z3 = (float) (z - (Math.cos(Math.toRadians(angle)) * moveIncrement) * lookAtPointRadius);
+			x3 = (float) (x - (Math.sin(Math.toRadians(angle)) * moveIncrement) * lookAtPointRadius);
+			y3 = y + 2f;
+		}
 		if(moveForward) {
+			if (thirdPersonView) {
+				z3 += Math.cos(Math.toRadians(angle)) * moveIncrement;
+				x3 += Math.sin(Math.toRadians(angle)) * moveIncrement;
+			}
 			z += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			x += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lz += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lx += Math.sin(Math.toRadians(angle)) * moveIncrement;
 		}
 		if(moveBackward) {
+			if (thirdPersonView) {
+				z3 -= Math.cos(Math.toRadians(angle)) * moveIncrement;
+				x3 -= Math.sin(Math.toRadians(angle)) * moveIncrement;
+			}
 			z -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			x -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lz -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lx -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 		}
 		if(translateLeft) {
+			if (thirdPersonView) {
+				z3 -= Math.sin(Math.toRadians(angle)) * moveIncrement;
+				x3 += Math.cos(Math.toRadians(angle)) * moveIncrement;
+			}
 			z -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			x += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lz -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lx += Math.cos(Math.toRadians(angle)) * moveIncrement;
 		}
 		if(translateRight) {
+			if (thirdPersonView) {
+				z3 += Math.sin(Math.toRadians(angle)) * moveIncrement;
+				x3 -= Math.cos(Math.toRadians(angle)) * moveIncrement;
+			}
 			z += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			x -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lz += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lx -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 		}
 		if(rotateLeft) {
-			angle += rotateIncrement;
+		    angle += rotateIncrement;
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
 		}
@@ -621,6 +663,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// change to 3rd person view
 			changeView = !changeView;
 			System.out.println(changeView);
+		    thirdPersonView = !thirdPersonView;
 			break;
 			
 		case KeyEvent.VK_N:

@@ -180,13 +180,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
 		gl.glUseProgram(0);
-<<<<<<< HEAD
 		gl.glPopMatrix();
 		
 		// draw animated pool
 		drawPool(gl);
-=======
->>>>>>> f8aa8ac059b7b4f426aa0eee9242fd14322ff77e
 	}
 
 	@Override
@@ -295,12 +292,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void drawSpecialObject(GL2 gl) {
 		setMaterialForSpecialObject(gl);
-<<<<<<< HEAD
-=======
+
 		gl.glTranslated(2, myTerrain.altitude(2, 8) + 0.1, 4);
 		gl.glRotated(degree, 0, 1, 0);
 		degree++;
->>>>>>> f8aa8ac059b7b4f426aa0eee9242fd14322ff77e
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
 		gl.glLineWidth(10);
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);

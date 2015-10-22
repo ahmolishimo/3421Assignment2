@@ -1,18 +1,79 @@
 package ass2.spec;
 
 public class MySpecialObject {
-	private static float points[] = {-0.5f, 0, -0.289f, 
-							  0.5f, 0, -0.289f, 
-							  0, 0, 0.578f,	// bottom face 
-							  0, 0, 0.578f,
-							  0.5f, 0, -0.289f,
-							  0, 0.816f, 0, // one side face
-							  0.5f, 0, -0.289f, 
-							  -0.5f, 0, -0.289f, 
-							  0, 0.816f, 0, // second side face
-							  -0.5f, 0, -0.289f, 
-							  0, 0, 0.578f, 
-							  0, 0.816f, 0};// third side face
+	private static float points[] = {
+			0, 0, 0, 
+			1, 0, 0, 
+			1, 0, 1, 
+			0, 0, 1, // bottom, lies on y = 0 
+			0, 0, 0, 
+			0, 0, 1, 
+			0, 1, 1, 
+			0, 1, 0, // front, lies on x = 0 
+			0, 0, 0, 
+			0, 1, 0, 
+			1, 1, 0, 
+			1, 0, 0, // side, lies on z = 0 
+			0, 0, 1, 
+			1, 0, 1, 
+			1, 1, 1, 
+			0, 1, 1, // side, lies on z = 1 
+			1, 0, 1, 
+			1, 0, 0, 
+			1, 1, 0, 
+			1, 1, 1, // back, lies on x = 1 
+			0, 1, 0, 
+			0, 1, 1, 
+			1, 1, 1, 
+			1, 1, 0, // top, lies on y = 1 
+			0, 0, 
+			0, 1, 
+			1, 1, 
+			1, 0, // texture coordinates
+			0, 0, 
+			0, 1, 
+			1, 1, 
+			1, 0, //
+			0, 0, 
+			0, 1, 
+			1, 1, 
+			1, 0, // 
+			0, 0, 
+			0, 1, 
+			1, 1, 
+			1, 0, //
+			0, 0, 
+			0, 1, 
+			1, 1, 
+			1, 0, //
+			0, 0, 
+			0, 1, 
+			1, 1, 
+			1, 0, //
+			0, -1, 0, // normals 
+			0, -1, 0,
+			0, -1, 0,
+			0, -1, 0,
+			-1, 0, 0,
+			-1, 0, 0,
+			-1, 0, 0,
+			-1, 0, 0,
+			0, 0, -1,
+			0, 0, -1,
+			0, 0, -1,
+			0, 0, -1,
+			0, 0, 1, 
+			0, 0, 1, 
+			0, 0, 1, 
+			0, 0, 1, 
+			1, 0, 0, 
+			1, 0, 0, 
+			1, 0, 0, 
+			1, 0, 0, 
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0};
 	public static float[] getPoints() {
 		return points;
 	}
@@ -22,6 +83,7 @@ public class MySpecialObject {
 	}
 	
 	public static int numberOfPoints() {
-		return points.length/3;
+		return 4*6;
 	}
+	
 }

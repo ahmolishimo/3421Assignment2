@@ -2,6 +2,9 @@
 
 varying vec3 N;
 varying vec4 v;
+varying vec2 texCoord;
+
+uniform sampler2D texUnit1;
 
 void main(void) {
 	/*ambient calculation*/
@@ -37,6 +40,7 @@ void main(void) {
 	}
 	
 	specular = clamp(specular,0,1);
-
-    gl_FragColor = gl_FrontMaterial.emission + globalAmbient + ambient + diffuse + specular;
+	//gl_FragColor = vec4(0, 0, 0, 1);
+	//gl_FragColor = texture2D(texUnit1, texCoord);
+    gl_FragColor = texture2D(texUnit1, texCoord) * (gl_FrontMaterial.emission + globalAmbient + ambient + diffuse) + specular;
 }

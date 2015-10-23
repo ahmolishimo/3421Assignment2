@@ -93,7 +93,7 @@ public class Road {
      * Points on the kth segment take have parameters in the range (k, k+1).
      * 
      * @param t
-     * @return
+     * @return a 2 dimension vector
      */
     public double[] point(double t) {
         int i = (int)Math.floor(t);
@@ -281,7 +281,6 @@ public class Road {
     		} else {
     			perp = leftPerpendicular(tangentVector);
     		}
-    		// TODO: adjust the divider so that the road looks nice and make the width right
     		edge = moveAlong(perp, p, myWidth/2.0);
     		return edge;
     }

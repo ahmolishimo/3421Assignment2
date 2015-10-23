@@ -30,7 +30,7 @@ public class Terrain {
     private List<Road> myRoads;
     private float[] mySunlight;
     private float[] myOthers;
-    
+    private boolean hasOthers = false;
     /**
      * Create a new terrain
      *
@@ -70,6 +70,10 @@ public class Terrain {
     		return myOthers;
     }
     
+    public boolean hasOthers() {
+    		return this.hasOthers;
+    }
+    
     /**
      * Set the sunlight direction. 
      * 
@@ -89,6 +93,7 @@ public class Terrain {
     		myOthers[0] = ox;
     		myOthers[1] = oy;
     		myOthers[2] = oz;
+    		hasOthers = true;
     }
     /**
      * Resize the terrain, copying any old altitudes. 

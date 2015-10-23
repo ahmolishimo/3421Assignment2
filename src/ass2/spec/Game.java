@@ -260,6 +260,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private void setLight(GL2 gl) {
 		if (night) {
 			// night light
+			gl.glClearColor(0, 0, 0, 1);
 			gl.glEnable(GL2.GL_LIGHT1);
 			float[] amb = { 0.1f, 0.1f, 0.1f, 1.0f };
 			float[] dif = { 0.2f, 0.2f, 0.2f, 1.0f };
@@ -288,6 +289,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glPopMatrix();
 		} else {
 			// day light
+			gl.glClearColor(1, 1, 1, 1);
 			gl.glDisable(GL2.GL_LIGHT1);
 			float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
 			float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
@@ -314,10 +316,25 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glRotated(angle - 90, 0, 1, 0);
 
 			// draw avatar
+			setMaterialForAvatar(gl);
 			GLUT glut = new GLUT();
-			glut.glutWireTeapot(1);
+			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[5].getTextureId());
+			glut.glutSolidTeapot(1);
 			gl.glPopMatrix();
 		}
+	}
+	
+	private void setMaterialForAvatar(GL2 gl) {
+		float[] ambientCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
+		float[] diffuseCoeff = { 0.9f, 0.9f, 0.9f, 1.0f };
+		float[] specCoeff = { 0.3f, 0.0f, 0.0f, 1.0f };
+		float[] emissionCoeff = { 0.0f, 0f, 0f, 1.0f };
+		float phong = 10f;
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_SPECULAR, specCoeff, 0);
+		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
+		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
 	}
 	
 	private void setMaterialForSpecialObject(GL2 gl) {
@@ -420,53 +437,46 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private void drawRoad(GL2 gl, Road road) {
 		setMaterialForRoad(gl);
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[4].getTextureId());
-		gl.glBegin(GL2.GL_QUADS);
-		for (int i = 0; i < ROAD_SEG_NUM - 1; i++) {
-			double t = road.size() / (double) ROAD_SEG_NUM * i;
+		gl.glBegin(GL2.GL_POLYGON);
+		// draw left first
+		for(int i = 0; i < ROAD_SEG_NUM -1; i++) {
+			double t = road.size()/(double)ROAD_SEG_NUM*i;
 			double[] pointOnSpine = road.point(t);
 			double height = myTerrain.altitude(pointOnSpine[0], pointOnSpine[1]) + 0.01;
-//			gl.glBegin(GL2.GL_POLYGON);
-//			// left first
-//			for(int j = ROAD_EXTRUSION_NUM; j > 0; j--) {
-//				double[] p1 = road.edgePoint(t, false, 1.0*j/ROAD_EXTRUSION_NUM);				
-//				gl.glTexCoord2d(1.0*i/ROAD_SEG_NUM, 0.5*j/ROAD_EXTRUSION_NUM+0.5);
-//				gl.glVertex3d(p1[0], myTerrain.altitude(p1[0], p1[1]), p1[1]);
-//			}
-//			// then right
-//			for(int j = 0; j < ROAD_EXTRUSION_NUM; j++) {
-//				double[] p2 = road.edgePoint(t, true, 1.0*j/ROAD_EXTRUSION_NUM);
-//				gl.glTexCoord2d(1.0*i/ROAD_SEG_NUM, 0.5-0.5*j/ROAD_EXTRUSION_NUM);
-//				gl.glVertex3d(p2[0], myTerrain.altitude(p2[0], p2[1]), p2[1]);
-//			}
-//			// then move a little bit forward, right
-//			for(int j = ROAD_EXTRUSION_NUM; j > 0; j--) {
-//				double[] p3 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, true, 1.0*j/ROAD_EXTRUSION_NUM);
-//				gl.glTexCoord2d(1.0*(1+i)/ROAD_SEG_NUM, 0.5 - 0.5*j/ROAD_EXTRUSION_NUM);
-//				gl.glVertex3d(p3[0], myTerrain.altitude(p3[0], p3[1]), p3[1]);
-//			}
-//			// finally, left
-//			for(int j = 0; j < ROAD_EXTRUSION_NUM; j++) {
-//				double[] p4 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, false, 1.0*j/ROAD_EXTRUSION_NUM);
-//				gl.glTexCoord2d(1.0*(1+i)/ROAD_SEG_NUM, 0.5 + 0.5*j/ROAD_EXTRUSION_NUM);
-//				gl.glVertex3d(p4[0], myTerrain.altitude(p4[0], p4[1]), p4[1]);
-//			}
-//			gl.glEnd();
-			double[] p1 = road.edgePoint(t, false);
-			double[] p2 = road.edgePoint(t, true);
-			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
-			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
-
-			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * i, 1);
-			gl.glVertex3d(p1[0], height, p1[1]);
-			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * i, 0);
-			gl.glVertex3d(p2[0], height, p2[1]);
-			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * (1 + i), 0);
-			gl.glVertex3d(p3[0], height, p3[1]);
-			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * (1 + i), 1);
-			gl.glVertex3d(p4[0], height, p4[1]);
-
+			double[] p = road.edgePoint(t, false);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM*i, 1);
+			gl.glVertex3d(p[0], height, p[1]);
+		}
+		// then draw right
+		for(int i = ROAD_SEG_NUM - 1; i >= 0; i--) {
+			double t = road.size()/(double)ROAD_SEG_NUM*i;
+			double[] pointOnSpine = road.point(t);
+			double height = myTerrain.altitude(pointOnSpine[0], pointOnSpine[1]) + 0.01;
+			double[] p = road.edgePoint(t, true);
+			gl.glTexCoord2d(1.0/ROAD_SEG_NUM*i, 0);
+			gl.glVertex3d(p[0], height, p[1]);
 		}
 		gl.glEnd();
+//		for (int i = 0; i < ROAD_SEG_NUM - 1; i++) {
+//			double t = road.size() / (double) ROAD_SEG_NUM * i;
+//			double[] pointOnSpine = road.point(t);
+//			double height = myTerrain.altitude(pointOnSpine[0], pointOnSpine[1]) + 0.01;
+//			double[] p1 = road.edgePoint(t, false);
+//			double[] p2 = road.edgePoint(t, true);
+//			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
+//			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
+//
+//			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * i, 1);
+//			gl.glVertex3d(p1[0], height, p1[1]);
+//			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * i, 0);
+//			gl.glVertex3d(p2[0], height, p2[1]);
+//			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * (1 + i), 0);
+//			gl.glVertex3d(p3[0], height, p3[1]);
+//			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * (1 + i), 1);
+//			gl.glVertex3d(p4[0], height, p4[1]);
+//
+//		}
+//		gl.glEnd();
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 	}
 

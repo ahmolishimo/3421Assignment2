@@ -69,9 +69,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private final float moveIncrement = 0.05f;
 	private final float rotateIncrement = 5.0f;
 	private final float lookAtPointRadius = 1.0f;
+	private final float thirdPersonRadius = 5.0f;
 	// define position of camera
 	private float x = 0.0f;
-	private float y = 2.0f;
+	private float y = 0.5f;
 	private float z = 0.0f;
 
 	// define position of 3rd person camera
@@ -83,8 +84,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private boolean moveBackward = false;
 	private boolean translateLeft = false;
 	private boolean translateRight = false;
-
-	private boolean thirdPersonView = false;
 
 	// define center point of camera
 	private float lx = 0.0f;
@@ -151,39 +150,12 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glLoadIdentity();
 		GLU glu = new GLU();
 		updateCamera();
-
-		// 1st person camera
 		if (!changeView) {
-			ly = (float) myTerrain.altitude(x, z) + 0.5f;
-			glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
+			glu.gluLookAt(x, y, z, lx, ly, lz, 0, 1, 0);
 		}
-
-		setLight(gl);
-		// set light position
-		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
-
-		// set night torch light
-		gl.glPushMatrix();
-		gl.glTranslated(x, ly, z);
-		gl.glRotated(angle, 0, 1, 0);
-
-		// Create a spot light
-		// cutoff angle: 45 degrees
-		// attenuation factor: 4
-		if (night) {
-			float[] dir = { 0, 0, 1, 0 };
-			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
-			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
-			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
-		}
-		gl.glPopMatrix();
-
 		// 3rd person view
-		if (changeView) {
-			ly = (float) myTerrain.altitude(x, z) + 0.5f;
-			y = (float) myTerrain.altitude(x, z) + 0.5f;
+		else {
 			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
-
 			gl.glPushMatrix();
 			gl.glTranslated(x, y, z);
 			gl.glScaled(0.3, 0.3, 0.3);
@@ -192,18 +164,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// draw avatar
 			GLUT glut = new GLUT();
 			glut.glutWireTeapot(1);
-
-			// Create a spot light
-			// cutoff angle: 45 degrees
-			// attenuation factor: 4
-			if (night) {
-				float[] dir = { 0, 0, 1, 0 };
-				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
-				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
-				gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
-			}
 			gl.glPopMatrix();
 		}
+		setLight(gl);
 		// drawCoordinateFrame(gl);
 		setMaterialForGrass(gl);
 		drawTerrain(gl);
@@ -219,7 +182,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		setMaterialForSpecialObject(gl);
 		float[] othersPos = myTerrain.getOthers();
 		gl.glTranslated(othersPos[0], myTerrain.altitude(othersPos[0], othersPos[2]) + 0.01, othersPos[2]);
-		// gl.glRotated(degree, 0, 1, 0);
 		degree++;
 		degree = degree % 360;
 		gl.glUseProgram(shaderProgram);
@@ -280,47 +242,27 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void updateCamera() {
 		angle = angle % 360;
-
-		if (thirdPersonView) {
-			z3 = (float) (z - (Math.cos(Math.toRadians(angle)) * moveIncrement) * lookAtPointRadius);
-			x3 = (float) (x - (Math.sin(Math.toRadians(angle)) * moveIncrement) * lookAtPointRadius);
-			y3 = y + 5.0f;
-		}
+		ly = (float) myTerrain.altitude(x, z) + 0.5f;
+		y = (float) myTerrain.altitude(x, z) + 0.5f;
 		if (moveForward) {
-			if (thirdPersonView) {
-				z3 += Math.cos(Math.toRadians(angle)) * moveIncrement;
-				x3 += Math.sin(Math.toRadians(angle)) * moveIncrement;
-			}
 			z += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			x += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lz += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lx += Math.sin(Math.toRadians(angle)) * moveIncrement;
 		}
 		if (moveBackward) {
-			if (thirdPersonView) {
-				z3 -= Math.cos(Math.toRadians(angle)) * moveIncrement;
-				x3 -= Math.sin(Math.toRadians(angle)) * moveIncrement;
-			}
 			z -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			x -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lz -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lx -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 		}
 		if (translateLeft) {
-			if (thirdPersonView) {
-				z3 -= Math.sin(Math.toRadians(angle)) * moveIncrement;
-				x3 += Math.cos(Math.toRadians(angle)) * moveIncrement;
-			}
 			z -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			x += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lz -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lx += Math.cos(Math.toRadians(angle)) * moveIncrement;
 		}
 		if (translateRight) {
-			if (thirdPersonView) {
-				z3 += Math.sin(Math.toRadians(angle)) * moveIncrement;
-				x3 -= Math.cos(Math.toRadians(angle)) * moveIncrement;
-			}
 			z += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			x -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lz += Math.sin(Math.toRadians(angle)) * moveIncrement;
@@ -336,6 +278,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
 		}
+		z3 = (float) (z - Math.cos(Math.toRadians(angle)) * thirdPersonRadius);
+		x3 = (float) (x - Math.sin(Math.toRadians(angle)) * thirdPersonRadius);
+		y3 = (float) (y + thirdPersonRadius * Math.tan(Math.toRadians(30)));
 	}
 
 	private void setLight(GL2 gl) {
@@ -357,13 +302,24 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_AMBIENT, amb1, 0);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_DIFFUSE, dif1, 0);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPECULAR, spe1, 0);
-
+			
+			// set night torch light
+			gl.glPushMatrix();
+			gl.glTranslated(x, ly, z);
+			gl.glRotated(angle, 0, 1, 0);
+			float[] dir = { 0, 0, 1, 0 };
+			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 36);
+			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 5);
+			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
+			gl.glPopMatrix();
 		} else {
 			// day light
 			gl.glDisable(GL2.GL_LIGHT1);
 			float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
 			float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
 			float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
+			// set light position
+			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
 			gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
 			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
 			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
@@ -373,8 +329,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void setMaterialForSpecialObject(GL2 gl) {
 		float[] ambientCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
-		float[] diffuseCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
-		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float[] diffuseCoeff = { 0.9f, 0.9f, 0.9f, 1.0f };
+		float[] specCoeff = { 0.3f, 0.0f, 0.0f, 1.0f };
 		float[] emissionCoeff = { 0.0f, 0f, 0f, 1.0f };
 		float phong = 10f;
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
@@ -695,7 +651,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		case KeyEvent.VK_1:
 			// change to 3rd person view
 			changeView = !changeView;
-			thirdPersonView = !thirdPersonView;
 			break;
 
 		case KeyEvent.VK_N:

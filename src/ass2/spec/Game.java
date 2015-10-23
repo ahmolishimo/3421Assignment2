@@ -48,7 +48,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private String poolAnimatedTextureFileName = "src/ass2/spec/animationpool.jpg";
 	private String roadTextureFileName = "src/ass2/spec/bricks.png";
 	private String fourFaceObjTextureFileName = "src/ass2/spec/wood-box.jpg";
-	
+
 	private final int TREE_TRUNK_NUM = 24;
 	private final int TREE_HEIGHT = 6;
 	private final int TREE_RADIUS = 1;
@@ -73,7 +73,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private float x = 0.0f;
 	private float y = 2.0f;
 	private float z = 0.0f;
-	
+
 	// define position of 3rd person camera
 	private float x3;
 	private float y3;
@@ -83,9 +83,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private boolean moveBackward = false;
 	private boolean translateLeft = false;
 	private boolean translateRight = false;
-	
+
 	private boolean thirdPersonView = false;
-	
+
 	// define center point of camera
 	private float lx = 0.0f;
 	private float ly = 2.0f;
@@ -96,9 +96,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private String VERTEX_SHADER = "src/ass2/spec/mySpecialObjectVertex.glsl";
 	private String FRAGMENT_SHADER = "src/ass2/spec/mySpecialObjectFragment.glsl";
 	private int shaderProgram;
-	
+
 	private boolean night = false;
-	
+
 	public Game(Terrain terrain) {
 		super("Assignment 2");
 		myLightPosition = new float[3];
@@ -151,55 +151,53 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glLoadIdentity();
 		GLU glu = new GLU();
 		updateCamera();
-		
-		// set the position of perspective camera
 
-		//glu.gluLookAt(0, 2, 15, 8, 2, 0, 0, 1, 0);
-		
+		// 1st person camera
 		if (!changeView) {
 			ly = (float) myTerrain.altitude(x, z) + 0.5f;
-			glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);			
+			glu.gluLookAt(x, ly, z, lx, ly, lz, 0, 1, 0);
 		}
-
 
 		setLight(gl);
 		// set light position
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, myLightPosition, 0);
-		
+
 		// set night torch light
 		gl.glPushMatrix();
 		gl.glTranslated(x, ly, z);
 		gl.glRotated(angle, 0, 1, 0);
+
 		// Create a spot light
 		// cutoff angle: 45 degrees
 		// attenuation factor: 4
-		if(night) {
-			float[] dir = {0, 0, 1, 0};
+		if (night) {
+			float[] dir = { 0, 0, 1, 0 };
 			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
 			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
 		}
 		gl.glPopMatrix();
-		
-		// draw avatar
+
+		// 3rd person view
 		if (changeView) {
 			ly = (float) myTerrain.altitude(x, z) + 0.5f;
-			//y3 = (float) myTerrain.altitude(x3, z3) + 0.5f;
+			y = (float) myTerrain.altitude(x, z) + 0.5f;
 			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
-			
+
 			gl.glPushMatrix();
 			gl.glTranslated(x, y, z);
 			gl.glScaled(0.3, 0.3, 0.3);
-			gl.glRotated(angle, 0, 1, 0);
-			gl.glColor3f(1, 0, 0);
+			gl.glRotated(angle - 90, 0, 1, 0);
+
+			// draw avatar
 			GLUT glut = new GLUT();
 			glut.glutWireTeapot(1);
-						
+
 			// Create a spot light
 			// cutoff angle: 45 degrees
 			// attenuation factor: 4
-			if(night) {
-				float[] dir = {0, 0, 1, 0};
+			if (night) {
+				float[] dir = { 0, 0, 1, 0 };
 				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 45);
 				gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 4);
 				gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
@@ -219,16 +217,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		// using vbos to draw objects
 		gl.glPushMatrix();
 		setMaterialForSpecialObject(gl);
-		float[] othersPos = myTerrain.getOthers(); 
+		float[] othersPos = myTerrain.getOthers();
 		gl.glTranslated(othersPos[0], myTerrain.altitude(othersPos[0], othersPos[2]) + 0.01, othersPos[2]);
-		//gl.glRotated(degree, 0, 1, 0);
+		// gl.glRotated(degree, 0, 1, 0);
 		degree++;
 		degree = degree % 360;
 		gl.glUseProgram(shaderProgram);
 		drawSpecialObject(gl);
 		gl.glUseProgram(0);
 		gl.glPopMatrix();
-		
+
 		// draw animated pool
 		setMaterialForPool(gl);
 		drawPool(gl);
@@ -244,7 +242,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glClearColor(1, 1, 1, 1);
 		gl.glEnable(GL2.GL_DEPTH_TEST);
 		gl.glEnable(GL2.GL_LIGHTING);
-		gl.glEnable(GL2.GL_LIGHT0);		
+		gl.glEnable(GL2.GL_LIGHT0);
 		gl.glEnable(GL2.GL_TEXTURE_2D);
 
 		// initialize textures
@@ -279,17 +277,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		float widthHeightRatio = (float) getWidth() / (float) getHeight();
 		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
 	}
-	
+
 	private void updateCamera() {
 		angle = angle % 360;
-	
-		
-		if(thirdPersonView) {
+
+		if (thirdPersonView) {
 			z3 = (float) (z - (Math.cos(Math.toRadians(angle)) * moveIncrement) * lookAtPointRadius);
 			x3 = (float) (x - (Math.sin(Math.toRadians(angle)) * moveIncrement) * lookAtPointRadius);
-			y3 = y + 2f;
+			y3 = y + 5.0f;
 		}
-		if(moveForward) {
+		if (moveForward) {
 			if (thirdPersonView) {
 				z3 += Math.cos(Math.toRadians(angle)) * moveIncrement;
 				x3 += Math.sin(Math.toRadians(angle)) * moveIncrement;
@@ -299,7 +296,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lz += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lx += Math.sin(Math.toRadians(angle)) * moveIncrement;
 		}
-		if(moveBackward) {
+		if (moveBackward) {
 			if (thirdPersonView) {
 				z3 -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 				x3 -= Math.sin(Math.toRadians(angle)) * moveIncrement;
@@ -309,7 +306,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lz -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 			lx -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 		}
-		if(translateLeft) {
+		if (translateLeft) {
 			if (thirdPersonView) {
 				z3 -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 				x3 += Math.cos(Math.toRadians(angle)) * moveIncrement;
@@ -319,7 +316,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lz -= Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lx += Math.cos(Math.toRadians(angle)) * moveIncrement;
 		}
-		if(translateRight) {
+		if (translateRight) {
 			if (thirdPersonView) {
 				z3 += Math.sin(Math.toRadians(angle)) * moveIncrement;
 				x3 -= Math.cos(Math.toRadians(angle)) * moveIncrement;
@@ -329,20 +326,20 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lz += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lx -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 		}
-		if(rotateLeft) {
-		    angle += rotateIncrement;
+		if (rotateLeft) {
+			angle += rotateIncrement;
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
 		}
-		if(rotateRight) {
+		if (rotateRight) {
 			angle -= rotateIncrement;
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
 		}
 	}
-	
+
 	private void setLight(GL2 gl) {
-		if(night) {
+		if (night) {
 			// night light
 			gl.glEnable(GL2.GL_LIGHT1);
 			float[] amb = { 0.1f, 0.1f, 0.1f, 1.0f };
@@ -355,16 +352,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			float[] amb1 = { 0.0f, 0.0f, 0.0f, 1.0f };
 			float[] dif1 = { 1f, 1f, 1f, 1.0f };
 			float[] spe1 = { 0.0f, 0.0f, 0.0f, 1.0f };
-			float[] lightPos = {x, y, z, 1};
+			float[] lightPos = { x, y, z, 1 };
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_POSITION, lightPos, 0);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_AMBIENT, amb1, 0);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_DIFFUSE, dif1, 0);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPECULAR, spe1, 0);
-			
+
 		} else {
 			// day light
 			gl.glDisable(GL2.GL_LIGHT1);
-	 		float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
+			float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
 			float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
 			float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
 			gl.glLightModelfv(GL2.GL_LIGHT_MODEL_AMBIENT, amb, 0);
@@ -373,7 +370,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
 		}
 	}
-	
+
 	private void setMaterialForSpecialObject(GL2 gl) {
 		float[] ambientCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
 		float[] diffuseCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
@@ -386,7 +383,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialf(GL2.GL_FRONT, GL2.GL_SHININESS, phong);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
 	}
-	
+
 	private void setMaterialForGrass(GL2 gl) {
 		// set material properties to grass
 		float[] ambientCoeff = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -428,7 +425,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		float[] diffuseCoeff = { 1f, 1f, 1f, 1.0f };
 		float[] specCoeff = { 0.0f, 0.0f, 0.0f, 1.0f };
 		float[] emissionCoeff = { 0.0f, 1f, 1f, 1.0f };
-		//float[] emissionCoeff = { 0f, 0f, 0f, 1.0f };
+		// float[] emissionCoeff = { 0f, 0f, 0f, 1.0f };
 		float phong = 10f;
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_DIFFUSE, diffuseCoeff, 0);
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_AMBIENT, ambientCoeff, 0);
@@ -446,8 +443,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
 		gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, bufferIDs[0]);
 		gl.glVertexPointer(3, GL.GL_FLOAT, 0, 0);
-		gl.glTexCoordPointer(2, GL.GL_FLOAT, 0, Float.BYTES*3*4*6);
-		gl.glNormalPointer(GL.GL_FLOAT, 0, Float.BYTES*3*4*6+Float.BYTES*2*4*6);
+		gl.glTexCoordPointer(2, GL.GL_FLOAT, 0, Float.BYTES * 3 * 4 * 6);
+		gl.glNormalPointer(GL.GL_FLOAT, 0, Float.BYTES * 3 * 4 * 6 + Float.BYTES * 2 * 4 * 6);
 		gl.glDrawArrays(GL2.GL_QUADS, 0, MySpecialObject.numberOfPoints());
 	}
 
@@ -467,14 +464,14 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			double[] p2 = road.edgePoint(t, true);
 			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
 			double[] p4 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, false);
-			
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 1);
+
+			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * i, 1);
 			gl.glVertex3d(p1[0], height, p1[1]);
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * i, 0);
+			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * i, 0);
 			gl.glVertex3d(p2[0], height, p2[1]);
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 0);
+			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * (1 + i), 0);
 			gl.glVertex3d(p3[0], height, p3[1]);
-			gl.glTexCoord2d(1.0/ROAD_SEG_NUM * (1 + i), 1);
+			gl.glTexCoord2d(1.0 / ROAD_SEG_NUM * (1 + i), 1);
 			gl.glVertex3d(p4[0], height, p4[1]);
 
 		}
@@ -571,7 +568,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glEnd();
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 	}
-	
+
 	private void drawPool(GL2 gl) {
 		gl.glPushMatrix();
 		double height = myTerrain.altitude(1, 5) + 0.01;
@@ -581,17 +578,20 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glBegin(GL2.GL_QUADS);
 		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // upper left
 		gl.glVertex3d(0, 0, 0);
-		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // lower left
+		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, num % 4 * 1.0 / 4.0); // lower
+																			// left
 		gl.glVertex3d(0, 0, 1);
-		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // lower right
+		gl.glTexCoord2d((num / 4 + 1) * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // lower
+																				// right
 		gl.glVertex3d(1, 0, 1);
-		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // upper right
+		gl.glTexCoord2d(num / 4 * 1.0 / 4.0, (num % 4 + 1) * 1.0 / 4.0); // upper
+																			// right
 		gl.glVertex3d(1, 0, 0);
 		gl.glEnd();
 		gl.glPopMatrix();
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 	}
-	
+
 	private void drawCoordinateFrame(GL2 gl) {
 		// test, draw a coordinate frame
 		gl.glBegin(GL2.GL_LINES);
@@ -658,15 +658,15 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// moving forward
 			moveForward = true;
 			break;
-			
+
 		case KeyEvent.VK_W:
 			moveForward = true;
 			break;
-			
+
 		case KeyEvent.VK_S:
 			moveBackward = true;
 			break;
-			
+
 		case KeyEvent.VK_DOWN:
 			// moving backward
 			moveBackward = true;
@@ -681,29 +681,28 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// turning left
 			rotateLeft = true;
 			break;
-			
+
 		case KeyEvent.VK_A:
 			// translate left
 			translateLeft = true;
 			break;
-			
+
 		case KeyEvent.VK_D:
 			// translate right
 			translateRight = true;
 			break;
-			
+
 		case KeyEvent.VK_1:
 			// change to 3rd person view
 			changeView = !changeView;
-			System.out.println(changeView);
-		    thirdPersonView = !thirdPersonView;
+			thirdPersonView = !thirdPersonView;
 			break;
-			
+
 		case KeyEvent.VK_N:
 			night = !night;
 			break;
 		}
-		
+
 		if (e.getKeyCode() < 250)
 			keys[e.getKeyCode()] = true;
 	}
@@ -715,20 +714,20 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// moving forward
 			moveForward = false;
 			break;
-			
+
 		case KeyEvent.VK_W:
 			moveForward = false;
 			break;
-			
+
 		case KeyEvent.VK_DOWN:
 			// moving backward
 			moveBackward = false;
 			break;
-			
+
 		case KeyEvent.VK_S:
 			moveBackward = false;
 			break;
-			
+
 		case KeyEvent.VK_RIGHT:
 			// turning right
 			rotateRight = false;
@@ -738,11 +737,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// turning left
 			rotateLeft = false;
 			break;
-			
+
 		case KeyEvent.VK_A:
 			translateLeft = false;
 			break;
-			
+
 		case KeyEvent.VK_D:
 			translateRight = false;
 			break;

@@ -54,7 +54,6 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private final int TREE_RADIUS = 1;
 
 	private final int ROAD_SEG_NUM = 100;
-
 	// used for special object rendering with vbos
 	private int bufferIDs[] = new int[1];
 	private int degree = 0;
@@ -150,47 +149,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glLoadIdentity();
 		GLU glu = new GLU();
 		updateCamera();
-		if (!changeView) {
-			glu.gluLookAt(x, y, z, lx, ly, lz, 0, 1, 0);
-		}
-		// 3rd person view
-		else {
-			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
-			gl.glPushMatrix();
-			gl.glTranslated(x, y, z);
-			gl.glScaled(0.3, 0.3, 0.3);
-			gl.glRotated(angle - 90, 0, 1, 0);
-
-			// draw avatar
-			GLUT glut = new GLUT();
-			glut.glutWireTeapot(1);
-			gl.glPopMatrix();
-		}
+		updateModel();
+		setCamera(glu, gl);
 		setLight(gl);
 		// drawCoordinateFrame(gl);
-		setMaterialForGrass(gl);
 		drawTerrain(gl);
 		drawTrees(gl);
-		List<Road> roads = myTerrain.roads();
-		for (int i = 0; i < roads.size(); i++) {
-			gl.glPushMatrix();
-			drawRoad(gl, roads.get(i));
-			gl.glPopMatrix();
-		}
+		drawRoads(gl);
 		// using vbos to draw objects
-		gl.glPushMatrix();
-		setMaterialForSpecialObject(gl);
-		float[] othersPos = myTerrain.getOthers();
-		gl.glTranslated(othersPos[0], myTerrain.altitude(othersPos[0], othersPos[2]) + 0.01, othersPos[2]);
-		degree++;
-		degree = degree % 360;
-		gl.glUseProgram(shaderProgram);
-		drawSpecialObject(gl);
-		gl.glUseProgram(0);
-		gl.glPopMatrix();
-
-		// draw animated pool
-		setMaterialForPool(gl);
+		if(myTerrain.hasOthers()) 
+			drawOthers(gl);
 		drawPool(gl);
 	}
 
@@ -223,6 +191,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glBufferData(GL2.GL_ARRAY_BUFFER, MySpecialObject.lengthInBytes(), posData, GL2.GL_STATIC_DRAW);
 
 		// init shaders
+		gl.glShadeModel(GL2.GL_SMOOTH);
 		try {
 			initShader(gl);
 		} catch (Exception e) {
@@ -283,6 +252,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		y3 = (float) (y + thirdPersonRadius * Math.tan(Math.toRadians(30)));
 	}
 
+	private void updateModel() {
+		degree++;
+		degree = degree % 360;
+	}
+	
 	private void setLight(GL2 gl) {
 		if (night) {
 			// night light
@@ -327,6 +301,25 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		}
 	}
 
+	private void setCamera(GLU glu, GL2 gl) {
+		if (!changeView) {
+			glu.gluLookAt(x, y, z, lx, ly, lz, 0, 1, 0);
+		}
+		// 3rd person view
+		else {
+			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
+			gl.glPushMatrix();
+			gl.glTranslated(x, y, z);
+			gl.glScaled(0.3, 0.3, 0.3);
+			gl.glRotated(angle - 90, 0, 1, 0);
+
+			// draw avatar
+			GLUT glut = new GLUT();
+			glut.glutWireTeapot(1);
+			gl.glPopMatrix();
+		}
+	}
+	
 	private void setMaterialForSpecialObject(GL2 gl) {
 		float[] ambientCoeff = { 0.9f, 0.3f, 0.3f, 1.0f };
 		float[] diffuseCoeff = { 0.9f, 0.9f, 0.9f, 1.0f };
@@ -390,6 +383,26 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMaterialfv(GL2.GL_FRONT, GL2.GL_EMISSION, emissionCoeff, 0);
 	}
 
+	private void drawRoads(GL2 gl) {
+		List<Road> roads = myTerrain.roads();
+		for (int i = 0; i < roads.size(); i++) {
+			gl.glPushMatrix();
+			drawRoad(gl, roads.get(i));
+			gl.glPopMatrix();
+		}
+	}
+	
+	private void drawOthers(GL2 gl) {
+		gl.glPushMatrix();
+		setMaterialForSpecialObject(gl);
+		float[] othersPos = myTerrain.getOthers();
+		gl.glTranslated(othersPos[0], myTerrain.altitude(othersPos[0], othersPos[2]) + 0.01, othersPos[2]);
+		gl.glUseProgram(shaderProgram);
+		drawSpecialObject(gl);
+		gl.glUseProgram(0);
+		gl.glPopMatrix();
+	}
+	
 	private void drawSpecialObject(GL2 gl) {
 		int texUnitLoc = gl.glGetUniformLocation(shaderProgram, "texUnit1");
 		gl.glUniform1i(texUnitLoc, 0);
@@ -408,14 +421,36 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		setMaterialForRoad(gl);
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[4].getTextureId());
 		gl.glBegin(GL2.GL_QUADS);
-		// TODO: try to set the height of the road according to the terrain
-		// in this version, the road has the same height/altitude
-		double[] p = road.point(0);
-		// shift the height a little bit so that it will be drawn above the
-		// terrain
-		double height = myTerrain.altitude(p[0], p[1]) + 0.01;
 		for (int i = 0; i < ROAD_SEG_NUM - 1; i++) {
 			double t = road.size() / (double) ROAD_SEG_NUM * i;
+			double[] pointOnSpine = road.point(t);
+			double height = myTerrain.altitude(pointOnSpine[0], pointOnSpine[1]) + 0.01;
+//			gl.glBegin(GL2.GL_POLYGON);
+//			// left first
+//			for(int j = ROAD_EXTRUSION_NUM; j > 0; j--) {
+//				double[] p1 = road.edgePoint(t, false, 1.0*j/ROAD_EXTRUSION_NUM);				
+//				gl.glTexCoord2d(1.0*i/ROAD_SEG_NUM, 0.5*j/ROAD_EXTRUSION_NUM+0.5);
+//				gl.glVertex3d(p1[0], myTerrain.altitude(p1[0], p1[1]), p1[1]);
+//			}
+//			// then right
+//			for(int j = 0; j < ROAD_EXTRUSION_NUM; j++) {
+//				double[] p2 = road.edgePoint(t, true, 1.0*j/ROAD_EXTRUSION_NUM);
+//				gl.glTexCoord2d(1.0*i/ROAD_SEG_NUM, 0.5-0.5*j/ROAD_EXTRUSION_NUM);
+//				gl.glVertex3d(p2[0], myTerrain.altitude(p2[0], p2[1]), p2[1]);
+//			}
+//			// then move a little bit forward, right
+//			for(int j = ROAD_EXTRUSION_NUM; j > 0; j--) {
+//				double[] p3 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, true, 1.0*j/ROAD_EXTRUSION_NUM);
+//				gl.glTexCoord2d(1.0*(1+i)/ROAD_SEG_NUM, 0.5 - 0.5*j/ROAD_EXTRUSION_NUM);
+//				gl.glVertex3d(p3[0], myTerrain.altitude(p3[0], p3[1]), p3[1]);
+//			}
+//			// finally, left
+//			for(int j = 0; j < ROAD_EXTRUSION_NUM; j++) {
+//				double[] p4 = road.edgePoint(t+road.size()/(double)ROAD_SEG_NUM, false, 1.0*j/ROAD_EXTRUSION_NUM);
+//				gl.glTexCoord2d(1.0*(1+i)/ROAD_SEG_NUM, 0.5 + 0.5*j/ROAD_EXTRUSION_NUM);
+//				gl.glVertex3d(p4[0], myTerrain.altitude(p4[0], p4[1]), p4[1]);
+//			}
+//			gl.glEnd();
 			double[] p1 = road.edgePoint(t, false);
 			double[] p2 = road.edgePoint(t, true);
 			double[] p3 = road.edgePoint(t + road.size() / (double) ROAD_SEG_NUM, true);
@@ -474,6 +509,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	}
 
 	private void drawTerrain(GL2 gl) {
+		setMaterialForGrass(gl);
 		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 		int terrainWidth = (int) myTerrain.size().getWidth();
 		int terrainHeight = (int) myTerrain.size().getHeight();
@@ -526,6 +562,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	}
 
 	private void drawPool(GL2 gl) {
+		setMaterialForPool(gl);
 		gl.glPushMatrix();
 		double height = myTerrain.altitude(1, 5) + 0.01;
 		gl.glTranslated(1, height, 5);

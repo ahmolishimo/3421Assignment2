@@ -139,8 +139,8 @@ public class Terrain {
      * Get the altitude at an arbitrary point. 
      * Non-integer points should be interpolated from neighbouring grid points
      * 
-     * TO BE COMPLETED
-     * 
+     * In this function, all point above the border of the terrain would be treated as 
+     * height = 0
      * @param x
      * @param z
      * @return
@@ -153,7 +153,7 @@ public class Terrain {
         double x2 = x1 + 1;
         double z1 = Math.floor(z);
         double z2 = z1 + 1;
-        
+        // four grid point
         double y11 = this.getGridAltitude((int) x1, (int) z1);
         double y12 = this.getGridAltitude((int) x1, (int) z2);
         double y22 = this.getGridAltitude((int) x2, (int) z2);
@@ -166,8 +166,11 @@ public class Terrain {
         //    |				   |
         //	  *(x1, z1)-------*(x2, z1)
         
+        // interpolate altitude on the left hand side
         double altitudeLeft = y12*(z-z1) + y11*(z2-z);
+        // altitude on the right
         double altitudeRight = y22*(z-z1) + y21*(z2-z);
+        // interpolate them along the horizontal line
         altitude = altitudeRight*(x-x1) + altitudeLeft*(x2-x);
         return altitude;
     }

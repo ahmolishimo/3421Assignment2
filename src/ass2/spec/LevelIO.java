@@ -78,6 +78,7 @@ public class LevelIO {
         }
         
 		if (jsonTerrain.has("others")) {
+			// if there is the others, read it
 			JSONArray jsonOthers = jsonTerrain.getJSONArray("others");
 			float ox = (float) jsonOthers.getDouble(0);
 			float oz = (float) jsonOthers.getDouble(1);

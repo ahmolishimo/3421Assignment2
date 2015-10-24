@@ -230,6 +230,7 @@ public class Road {
      */
     private double[] rightPerpendicular(double[] line) {
     		double[] p = new double[2];
+    		// simply rotate it 90 degrees
     		p[0] = line[1];
     		p[1] = 0-line[0];
     		p = normalize(p);

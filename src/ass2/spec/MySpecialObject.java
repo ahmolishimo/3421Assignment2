@@ -1,5 +1,9 @@
 package ass2.spec;
 
+/**This class basically stores a bunch of point, texture coordinates, normals etc for the others
+ * @author Andy
+ *
+ */
 public class MySpecialObject {
 	private static float points[] = {
 			0, 0, 0, 

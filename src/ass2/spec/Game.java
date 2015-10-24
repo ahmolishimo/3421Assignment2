@@ -49,16 +49,16 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private String roadTextureFileName = "src/ass2/spec/bricks.png";
 	private String fourFaceObjTextureFileName = "src/ass2/spec/wood-box.jpg";
 
-	private final int TREE_TRUNK_NUM = 24;
-	private final int TREE_HEIGHT = 6;
-	private final int TREE_RADIUS = 1;
+	private final int TREE_TRUNK_NUM = 24; // the number of quads used to generate the trunk mesh
+	private final int TREE_HEIGHT = 6; // height of the tree
+	private final int TREE_RADIUS = 1; // radius of the trunk
 
-	private final int ROAD_SEG_NUM = 100;
+	private final int ROAD_SEG_NUM = 100; // how many points along the road are used to generate the mesh
 	// used for special object rendering with vbos
 	private int bufferIDs[] = new int[1];
-	private int degree = 0;
+	private int degree = 0;// used solely in the animated pool
 
-	// define angle of position
+	// define angle of position(camera & light)
 	private float angle = 0.0f;
 	private boolean rotateLeft = false;
 	private boolean rotateRight = false;
@@ -78,13 +78,14 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private float x3;
 	private float y3;
 	private float z3;
-	//
+	// whether to move or not
 	private boolean moveForward = false;
 	private boolean moveBackward = false;
 	private boolean translateLeft = false;
 	private boolean translateRight = false;
 
 	// define center point of camera
+	// look at point
 	private float lx = 0.0f;
 	private float ly = 2.0f;
 	private float lz = 1.0f;
@@ -169,6 +170,8 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
+		// set the clear color to white
+		// this is changed afterwards
 		gl.glClearColor(1, 1, 1, 1);
 		gl.glEnable(GL2.GL_DEPTH_TEST);
 		gl.glEnable(GL2.GL_LIGHTING);
@@ -205,15 +208,19 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
 		GLU glu = new GLU();
+		// calculate aspect ratio
 		float widthHeightRatio = (float) getWidth() / (float) getHeight();
+		// setup perspective camera
 		glu.gluPerspective(60, widthHeightRatio, 0.1, 100);
 	}
 
 	private void updateCamera() {
-		angle = angle % 360;
+		angle = angle % 360;// normalize the angle to 0~360 degree
+		// update look at point height
 		ly = (float) myTerrain.altitude(x, z) + 0.5f;
 		y = (float) myTerrain.altitude(x, z) + 0.5f;
 		if (moveForward) {
+			// if the camera is moving forward, move the x and z coordinates
 			z += Math.cos(Math.toRadians(angle)) * moveIncrement;
 			x += Math.sin(Math.toRadians(angle)) * moveIncrement;
 			lz += Math.cos(Math.toRadians(angle)) * moveIncrement;
@@ -238,6 +245,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lx -= Math.cos(Math.toRadians(angle)) * moveIncrement;
 		}
 		if (rotateLeft) {
+			// in rotation, the camera coordinates stay the same
+			// change the look at point coordinates as if the point is 
+			// moving on a circle centered at the camera point
 			angle += rotateIncrement;
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
@@ -247,12 +257,18 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			lx = (float) (x + Math.sin(Math.toRadians(angle)) * lookAtPointRadius);
 			lz = (float) (z + Math.cos(Math.toRadians(angle)) * lookAtPointRadius);
 		}
+		// update third person coordinates anyway
+		// the x,z coordinates of the third person eye point is updated
+		// by imagining the point on a circle centered the 1st person eye point
+		// the height(y) of the third person look at point is calculated
+		// by raising the point above horizontal plane by 30 degrees
 		z3 = (float) (z - Math.cos(Math.toRadians(angle)) * thirdPersonRadius);
 		x3 = (float) (x - Math.sin(Math.toRadians(angle)) * thirdPersonRadius);
 		y3 = (float) (y + thirdPersonRadius * Math.tan(Math.toRadians(30)));
 	}
 
 	private void updateModel() {
+		// just normalize the degree(used in the animated pool)
 		degree++;
 		degree = degree % 360;
 	}
@@ -260,8 +276,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	private void setLight(GL2 gl) {
 		if (night) {
 			// night light
+			// set background to black
 			gl.glClearColor(0, 0, 0, 1);
+			// enable torch light
 			gl.glEnable(GL2.GL_LIGHT1);
+			// light properties for the "sun" with low ambient/diffuse light
 			float[] amb = { 0.1f, 0.1f, 0.1f, 1.0f };
 			float[] dif = { 0.2f, 0.2f, 0.2f, 1.0f };
 			float[] spe = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -269,9 +288,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, amb, 0);
 			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, dif, 0);
 			gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, spe, 0);
+			// light properties for the torch light with hight diffuse light
 			float[] amb1 = { 0.0f, 0.0f, 0.0f, 1.0f };
 			float[] dif1 = { 1f, 1f, 1f, 1.0f };
 			float[] spe1 = { 0.0f, 0.0f, 0.0f, 1.0f };
+			// the position of the light should be at the first person eye point
 			float[] lightPos = { x, y, z, 1 };
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_POSITION, lightPos, 0);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_AMBIENT, amb1, 0);
@@ -279,18 +300,20 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPECULAR, spe1, 0);
 			
 			// set night torch light
+			// the direction of the torch light should face at +z of the local
+			// coordinate frame of the first person eye point
 			gl.glPushMatrix();
 			gl.glTranslated(x, ly, z);
 			gl.glRotated(angle, 0, 1, 0);
-			float[] dir = { 0, 0, 1, 0 };
+			float[] dir = { 0, 0, 1, 0 };// look at z
 			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_CUTOFF, 36);
 			gl.glLightf(GL2.GL_LIGHT1, GL2.GL_SPOT_EXPONENT, 5);
 			gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPOT_DIRECTION, dir, 0);
 			gl.glPopMatrix();
 		} else {
 			// day light
-			gl.glClearColor(1, 1, 1, 1);
-			gl.glDisable(GL2.GL_LIGHT1);
+			gl.glClearColor(1, 1, 1, 1);// white background color
+			gl.glDisable(GL2.GL_LIGHT1);// no torch light
 			float[] amb = { 0.3f, 0.3f, 0.3f, 1.0f };
 			float[] dif = { 0.25f, 1.0f, 1.0f, 1.0f };
 			float[] spe = { 1.0f, 1.0f, 0.25f, 1.0f };
@@ -305,10 +328,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void setCamera(GLU glu, GL2 gl) {
 		if (!changeView) {
+			// 1st person view
 			glu.gluLookAt(x, y, z, lx, ly, lz, 0, 1, 0);
 		}
-		// 3rd person view
 		else {
+			// 3rd person view
 			glu.gluLookAt(x3, y3, z3, lx, ly, lz, 0, 1, 0);
 			gl.glPushMatrix();
 			gl.glTranslated(x, y, z);
@@ -402,8 +426,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 
 	private void drawRoads(GL2 gl) {
 		List<Road> roads = myTerrain.roads();
+		// for each road
 		for (int i = 0; i < roads.size(); i++) {
 			gl.glPushMatrix();
+			// draw it
 			drawRoad(gl, roads.get(i));
 			gl.glPopMatrix();
 		}
@@ -421,9 +447,11 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 	}
 	
 	private void drawSpecialObject(GL2 gl) {
+		// pass texture
 		int texUnitLoc = gl.glGetUniformLocation(shaderProgram, "texUnit1");
 		gl.glUniform1i(texUnitLoc, 0);
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[5].getTextureId());
+		// use vbo to draw
 		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
 		gl.glEnableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
 		gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
@@ -438,16 +466,18 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		setMaterialForRoad(gl);
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[4].getTextureId());
 		gl.glBegin(GL2.GL_POLYGON);
-		// draw left first
+		// imagine walking along the spine of the road
+		// draw the edge to the left of you first, from the beginning to the end
 		for(int i = 0; i < ROAD_SEG_NUM -1; i++) {
 			double t = road.size()/(double)ROAD_SEG_NUM*i;
+			// get a point on the spine to ask for the height
 			double[] pointOnSpine = road.point(t);
 			double height = myTerrain.altitude(pointOnSpine[0], pointOnSpine[1]) + 0.01;
 			double[] p = road.edgePoint(t, false);
 			gl.glTexCoord2d(1.0/ROAD_SEG_NUM*i, 1);
 			gl.glVertex3d(p[0], height, p[1]);
 		}
-		// then draw right
+		// then draw right, from the end to the beginning
 		for(int i = ROAD_SEG_NUM - 1; i >= 0; i--) {
 			double t = road.size()/(double)ROAD_SEG_NUM*i;
 			double[] pointOnSpine = road.point(t);
@@ -490,7 +520,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[1].getTextureId());
 			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 
-			// draw around
+			// draw around as a bunch of quads
 			gl.glBegin(GL2.GL_QUAD_STRIP);
 			for (int j = 0; j < TREE_TRUNK_NUM + 1; j++) {
 				double x = Math.cos(2 * j * TREE_RADIUS * Math.PI / TREE_TRUNK_NUM);
@@ -504,6 +534,7 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			gl.glEnd();
 
 			// draw top ball
+			// just a solid sphere with texture
 			// gl.glBindTexture(GL2.GL_TEXTURE_2D, 0);
 			gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[2].getTextureId());
 			setMaterialForTreeBall(gl);
@@ -532,9 +563,9 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 			// the point to the right and the point down it
 			//
 			// this point *-------* right point
-			// | /|
-			// | / |
-			// | / |
+			//            |      /|
+			//            |    /  |
+			//            |  /    |
 			// down point *-------* corner point
 			//
 			for (int i = 0; i < terrainWidth - 1; i++) {
@@ -576,6 +607,10 @@ public class Game extends JFrame implements GLEventListener, KeyListener {
 		gl.glPushMatrix();
 		double height = myTerrain.altitude(1, 5) + 0.01;
 		gl.glTranslated(1, height, 5);
+		// since all pictures for the pool is in one file
+		// we need to iterate through the 16 small pictures
+		// the 5 here is just the speed of the wave
+		// num specifies which small picture to use
 		int num = (degree / 5) % 16;
 		gl.glBindTexture(GL2.GL_TEXTURE_2D, textures[3].getTextureId());
 		gl.glBegin(GL2.GL_QUADS);
